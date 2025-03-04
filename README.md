@@ -1,6 +1,6 @@
 # nf-metgenomics-piplines
 
-Main repository for the Olm lab bioinformatics pipelines.
+Main repository for  Olm lab bioinformatics pipelines.
 
 Author: Parsa Ghadermazi (pagh1940@colorado.edu)
 
@@ -19,7 +19,7 @@ This repository contains Nextflow pipelines for computational research in the Ol
 2. **Clone the repository**: Go to an appropriate location and clone this repository to your local machine using git:
     ```bash
     cd /path/to/your/directory
-    https://github.com/OlmLab/bioinformatics_pipelines.git
+    git clone https://github.com/ParsaGhadermazi/nf-metgenomics-piplines.git
     ``` 
 3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap]() markdown file.
 a roadmap is simply a group of Nextflow workflows chained together. 

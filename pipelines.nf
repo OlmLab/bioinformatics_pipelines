@@ -11,24 +11,22 @@ workflow {
         }
         
     
-        // if (params.input_type=="sra")
-        // {
-        //     table=tableToDict(file("${params.input_file}"))
-        //     get_sequences_from_sra(Channel.fromList(table["Run"]))
-        //     roadmap_1(get_sequences_from_sra.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
-        // }
-        // if (params.input_type=="local")
-        // {
-        //     table=tableToDict(file("${params.input_file}"))
-        //     reads_1=Channel.fromList(table["reads1"])
-        //     reads_2=Channel.fromList(table["reads2"])
-        //     reads=reads_1.combine(reads_2)
-        //     sample_name=Channel.fromList(table["sample_name"])
-        //     roadmap_1(sample_name, reads, file(params.host_genome))
-        // }
-    reads=file("raw_data/SRR25448121/SRR25448121_*_trimmed.fastq.gz")
-    println(reads)
-    compare_samples_instrain(reads, "SRR25448121", file("/Users/parsaghadermarzi/Desktop/Academics/Projects/nf-metgenomics-piplines/output/binning/metabat2/TEST_SAMPLE/TEST_SAMPLE_metabat2_bins.1.fa"))
+        if (params.input_type=="sra")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            get_sequences_from_sra(Channel.fromList(table["Run"]))
+            roadmap_1(get_sequences_from_sra.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+        }
+        if (params.input_type=="local")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            reads_1=Channel.fromPath(table["reads1"])
+            reads_2=Channel.fromPath(table["reads2"])
+            reads=reads_1.combine(reads_2)
+            sample_name=Channel.fromList(table["sample_name"])
+            roadmap_1(sample_name, reads, file(params.host_genome))
+        }
+
         
     }
     
