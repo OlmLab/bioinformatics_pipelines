@@ -10,7 +10,7 @@ process  estimate_abundance_coverm{
     path reads
     val extension
     output:
-    path "${sample_name}_abundance.tsv", emit: abundance
+    path "${sample_name}_relative_abundance.tsv", emit: abundance
     script:
     if (reads.size() == 2) {
     """
