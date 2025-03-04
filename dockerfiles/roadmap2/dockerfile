@@ -1,0 +1,15 @@
+FROM continuumio/anaconda3
+RUN conda config --add channels conda-forge
+RUN conda create -n inStrain python=3.8 bioconda::instrain biopython=1.74 -y
+RUN conda run -n inStrain conda install coverm samtools 
+RUN conda run -n inStrain conda install -c bioconda bowtie2 
+RUN conda run -n inStrain conda install numba
+RUN wget https://github.com/biod/sambamba/releases/download/v1.0.1/sambamba-1.0.1-linux-amd64-static.gz
+RUN gzip -d sambamba-1.0.1-linux-amd64-static.gz
+RUN chmod +x sambamba-1.0.1-linux-amd64-static
+RUN mv sambamba-1.0.1-linux-amd64-static /usr/local/bin/sambamba
+RUN echo "source activate inStrain" >> ~/.bashrc
+RUN conda init bash
+ENV  PATH="/opt/conda/envs/inStrain/bin:$PATH"
+# RUN conda install python3.8
+# RUN conda install bioconda::inStrain biopython=1.74 -y

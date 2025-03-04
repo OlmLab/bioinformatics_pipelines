@@ -1,0 +1,4 @@
+def saybye() {
+    
+    println "Bye";
+}
