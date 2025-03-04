@@ -21,8 +21,6 @@ process  estimate_abundance_coverm{
          --genome-fasta-extension ${extension} \\
         --threads ${task.cpus} \\
         --output-file ${sample_name}_relative_abundance.tsv \\
-        --output-format tsv \\
-        --extension ${extension}
     
     """
     }
@@ -34,8 +32,6 @@ process  estimate_abundance_coverm{
          --genome-fasta-extension ${extension} \\
         --threads ${task.cpus} \\
         --output-file ${sample_name}_relative_abundance.tsv \\
-        --output-format tsv \\
-        --extension ${extension}
-    """
+\    """
     }
 }
