@@ -6,33 +6,47 @@ workflow {
     if (params.roadmap_id=="roadmap_1")
     {
         if (!params.host_genome)
+            {
+                error "Please provide a host genome for decontamination in the roadmap_1 workflow."
+            }
+
+
+            if (params.input_type=="sra")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                roadmap_1(get_sequences_from_sra.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+            }
+            if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                reads_1=Channel.fromPath(table["reads1"])
+                reads_2=Channel.fromPath(table["reads2"])
+                reads=reads_1.merge(reads_2)
+                sample_name=Channel.fromList(table["sample_name"])
+                roadmap_1(sample_name, reads, file(params.host_genome))
+            }
+            }
+        
+        else if (params.roadmap_id=="roadmap_2")
         {
-            error "Please provide a host genome for decontamination in the roadmap_1 workflow."
+            table=tableToDict(file("${params.input_reads}"))
+            reads_1=table["reads1"]
+            reads_2=table["reads2"]
+            reads=[reads_1,reads_2].transpose()
+            sample_names=table["sample_name"].toList()
+            fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].toList()
+            roadmap_2(sample_names, reads, fasta_file)
         }
         
-    
-        if (params.input_type=="sra")
-        {
-            table=tableToDict(file("${params.input_file}"))
-            get_sequences_from_sra(Channel.fromList(table["Run"]))
-            roadmap_1(get_sequences_from_sra.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
-        }
-        if (params.input_type=="local")
-        {
-            table=tableToDict(file("${params.input_file}"))
-            reads_1=Channel.fromPath(table["reads1"])
-            reads_2=Channel.fromPath(table["reads2"])
-            reads=reads_1.combine(reads_2)
-            sample_name=Channel.fromList(table["sample_name"])
-            roadmap_1(sample_name, reads, file(params.host_genome))
-        }
+
 
         
     }
     
 
     
-}
+
 
 
 workflow seqs_from_sra {
@@ -66,21 +80,36 @@ workflow roadmap_1{
 }
 
 //
-
-workflow compare_samples_instrain {
+workflow roadmap_2 {
     take:
+    sample_names
     reads
-    sample_name
     fasta_file
     main:
-    index_bowtie2(fasta_file)
-    align_bowtie2(sample_name,index_bowtie2.out.reference_genome, reads,index_bowtie2.out.bowtie2_index_files)
+    fasta_file_ch=Channel.fromList(fasta_file).map{t->file(t)}
+    sample_names_ch=Channel.fromList(sample_names)
+    reads_ch=Channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
+    index_bowtie2(fasta_file_ch)
+    samples_reads=sample_names_ch.merge(reads_ch)
+    samples_reads.combine(index_bowtie2.out.bowtie2_index_files.merge(index_bowtie2.out.reference_genome)).multiMap{t->
+    sample_names_:t[0]
+    reads_:tuple(t[1],t[2])
+    index_bowtie2_:tuple(t[3],t[4],t[5],t[6],t[7],t[8])
+    reference_genome_:tuple(t[-1])
+    }.set{split_results}
+    align_bowtie2(split_results.sample_names_,split_results.reference_genome_,split_results.reads_,split_results.index_bowtie2_)
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
-    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam, fasta_file)
+    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam.merge(split_results.reference_genome_))
+    profile_with_instrain.out.instrain_profiles.groupTuple(by:0).set{profiles}
+    compare_instrain_profiles(profiles)
+}
+
+
+
     // compare_instrain_profiles(profiles, "${fasta_file.baseName}_instrain_compare")
 
     
-}
+
 workflow quality_control {
     /*
     This workflow takes raw sequencing reads and performs quality control and decontamination.

@@ -11,5 +11,3 @@ RUN mv sambamba-1.0.1-linux-amd64-static /usr/local/bin/sambamba
 RUN echo "source activate inStrain" >> ~/.bashrc
 RUN conda init bash
 ENV  PATH="/opt/conda/envs/inStrain/bin:$PATH"
-# RUN conda install python3.8
-# RUN conda install bioconda::inStrain biopython=1.74 -y
