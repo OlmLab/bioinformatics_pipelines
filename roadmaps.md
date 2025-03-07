@@ -42,7 +42,7 @@ Also you need to provide the path to the host genome. An example run with this m
 ### Description
 This roadmap is designed to perform strain-level analysis using inStrain. You can provide a list of samples and genomes in the form of a CSV file. The workflow starts with the following steps:
 1. **Aligning the samples to the genomes**: The reads are aligned to the genomes using bowtie2. Each sample and genome pair is aligned separately in parallel.
-2. **Profiling each pair**: The aligned reads are then profiled using inStrain against each genome. The output is a table containing the abundance of each genome in each sample.
+2. **Profiling each pair**: The aligned reads are then profiled using inStrain against each genome.
 3. **Compare the profiles**: The profiles from the previous step are grouped based on the fasta file (the genomes.)and then compared using inStrain compare. 
 
 ![roadmap_2](imgs/dag-roadmap_2.svg)
