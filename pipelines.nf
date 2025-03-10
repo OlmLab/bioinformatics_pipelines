@@ -15,7 +15,7 @@ workflow {
             {
                 table=tableToDict(file("${params.input_file}"))
                 get_sequences_from_sra(Channel.fromList(table["Run"]))
-                roadmap_1(get_sequences_from_sra.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+                roadmap_1(get_sequences_from_sra.out.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
             }
             if (params.input_type=="local")
             {
