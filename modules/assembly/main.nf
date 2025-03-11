@@ -17,7 +17,7 @@ process assemble_with_megahit{
     path reads, emit: reads
     
     script:
-    if (params.paired) {
+    if (reads.size() == 2) {
         """
         megahit \
             -1 ${reads[0]} \

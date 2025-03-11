@@ -123,31 +123,17 @@ workflow quality_control {
     main:
     read_qc_fastp(sample_name, reads)
     index_bowtie2(host_genome)
-    if (params.paired)
-    {
-        
+    align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
+    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
+    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
 
-        if (params.paired)
-        {
-          align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
-          convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
-          get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
-          get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
-        } }    
-      
-    else
-        {
-            align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
-            convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
-            get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
-            get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
-        }
-        emit:
+    emit:
         qc_reads=get_unmapped_reads.out.unmapped_reads
         sample_name=read_qc_fastp.out.sample_name
-
-
 }
+
+
 
 workflow assembly {
     take:
@@ -156,8 +142,14 @@ workflow assembly {
 
     main:
     assemble_with_megahit(sample_name, reads)
+    
     index_bowtie2(assemble_with_megahit.out.contigs)
-    align_bowtie2(assemble_with_megahit.out.sample_name,index_bowtie2.out.reference_genome, assemble_with_megahit.out.reads,index_bowtie2.out.bowtie2_index_files)
+
+    align_bowtie2(assemble_with_megahit.out.sample_name,
+                    index_bowtie2.out.reference_genome,
+                    assemble_with_megahit.out.reads,
+                    index_bowtie2.out.bowtie2_index_files)
+
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
     
     emit:
