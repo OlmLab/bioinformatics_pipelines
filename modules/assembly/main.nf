@@ -13,6 +13,8 @@ process assemble_with_megahit{
     output:
     path "megahit_out/${sample_name}.contigs.fa", emit: contigs
     path "megahit_out/*"
+    val sample_name, emit: sample_name
+    path reads, emit: reads
     
     script:
     if (params.paired) {

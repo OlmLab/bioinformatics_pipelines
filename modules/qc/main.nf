@@ -12,7 +12,7 @@ process read_qc_fastp {
     path "${sample_name}_fastp.html", emit: report_html
     path "${sample_name}_fastp.json", emit: report_json
     path("${sample_name}_fastp*.fastq.gz"), emit: fastp_qcd_reads
-
+    val sample_name, emit:sample_name
     script:
     if (reads.size() == 2) {
         """

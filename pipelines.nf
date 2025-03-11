@@ -72,9 +72,9 @@ workflow roadmap_1{
 
     main:
     quality_control(sample_name, reads, host_genome)
-    assembly(sample_name, quality_control.out.qc_reads)
-    binning(sample_name, assembly.out.sorted_bams, assembly.out.contigs)
-    estimate_abundance_coverm(sample_name, binning.out.metabat2_bins, quality_control.out.qc_reads, params.binning_extension)    
+    assembly(quality_control.out.sample_name, quality_control.out.qc_reads)
+    binning(assembly.out.sample_name, assembly.out.sorted_bams, assembly.out.contigs)
+    estimate_abundance_coverm(binning.out.sample_name, binning.out.metabat2_bins, quality_control.out.qc_reads, params.binning_extension)    
     emit:
     metabat2_bins=binning.out.metabat2_bins
 }
@@ -129,7 +129,7 @@ workflow quality_control {
 
         if (params.paired)
         {
-          align_bowtie2(sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
+          align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
           convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
           get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
           get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
@@ -137,13 +137,14 @@ workflow quality_control {
       
     else
         {
-            align_bowtie2(sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
+            align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
             convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
             get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
             get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
         }
         emit:
         qc_reads=get_unmapped_reads.out.unmapped_reads
+        sample_name=read_qc_fastp.out.sample_name
 
 
 }
@@ -156,12 +157,13 @@ workflow assembly {
     main:
     assemble_with_megahit(sample_name, reads)
     index_bowtie2(assemble_with_megahit.out.contigs)
-    align_bowtie2(sample_name,index_bowtie2.out.reference_genome, reads,index_bowtie2.out.bowtie2_index_files)
+    align_bowtie2(assemble_with_megahit.out.sample_name,index_bowtie2.out.reference_genome, assemble_with_megahit.out.reads,index_bowtie2.out.bowtie2_index_files)
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
     
     emit:
     contigs=assemble_with_megahit.out.contigs
     sorted_bams=convert_sam_to_sorted_bam.out.sorted_bam
+    sample_name=assemble_with_megahit.out.sample_name
 }
     
 workflow binning {
@@ -171,10 +173,11 @@ workflow binning {
     assembly
     main:
     get_coverage_for_metabat2(sample_name, sorted_bams)
-    binning_with_metabat2(sample_name,assembly,get_coverage_for_metabat2.out.coverage)
+    binning_with_metabat2(get_coverage_for_metabat2.out.sample_name,assembly,get_coverage_for_metabat2.out.coverage)
 
     emit:
     metabat2_bins=binning_with_metabat2.out.metabat2_bins
+    sample_name=binning_with_metabat2.out.sample_name
 
 }
 

@@ -10,6 +10,7 @@ process  get_coverage_for_metabat2
     path sorted_bam
     output:
     path "${sample_name}_coverage.txt", emit: coverage
+    val sample_name, emit: sample_name
     script:
     """
     jgi_summarize_bam_contig_depths \\
@@ -33,6 +34,7 @@ process binning_with_metabat2
     path coverage
     output:
     path  "${sample_name}_metabat2_bins*", emit: metabat2_bins
+    val sample_name, emit: sample_name
     script:
     """ 
     metabat2 \\
