@@ -73,8 +73,8 @@ workflow roadmap_1{
     main:
     quality_control(sample_name, reads, host_genome)
     assembly(quality_control.out.sample_name, quality_control.out.qc_reads)
-    binning(assembly.out.sample_name, assembly.out.sorted_bams, assembly.out.contigs)
-    estimate_abundance_coverm(binning.out.sample_name, binning.out.metabat2_bins, quality_control.out.qc_reads, params.binning_extension)    
+    binning(assembly.out.sample_name, assembly.out.sorted_bams, assembly.out.contigs,assembly.out.reads)
+    estimate_abundance_coverm(binning.out.sample_name, binning.out.metabat2_bins, binning.out.reads, params.binning_extension)    
     emit:
     metabat2_bins=binning.out.metabat2_bins
 }
@@ -133,8 +133,6 @@ workflow quality_control {
         sample_name=read_qc_fastp.out.sample_name
 }
 
-
-
 workflow assembly {
     take:
     sample_name
@@ -142,20 +140,13 @@ workflow assembly {
 
     main:
     assemble_with_megahit(sample_name, reads)
-    
-    index_bowtie2(assemble_with_megahit.out.contigs)
-
-    align_bowtie2(assemble_with_megahit.out.sample_name,
-                    index_bowtie2.out.reference_genome,
-                    assemble_with_megahit.out.reads,
-                    index_bowtie2.out.bowtie2_index_files)
-
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
+    map_reads_to_fasta(assemble_with_megahit.out.sample_name, assemble_with_megahit.out.reads, assemble_with_megahit.out.contigs)
     
     emit:
-    contigs=assemble_with_megahit.out.contigs
-    sorted_bams=convert_sam_to_sorted_bam.out.sorted_bam
-    sample_name=assemble_with_megahit.out.sample_name
+    contigs=map_reads_to_fasta.out.fasta_file
+    sorted_bams=map_reads_to_fasta.out.sorted_bam
+    sample_name=map_reads_to_fasta.out.sample_name
+    reads=assemble_with_megahit.out.reads
 }
     
 workflow binning {
@@ -163,6 +154,7 @@ workflow binning {
     sample_name
     sorted_bams
     assembly
+    reads
     main:
     get_coverage_for_metabat2(sample_name, sorted_bams)
     binning_with_metabat2(get_coverage_for_metabat2.out.sample_name,assembly,get_coverage_for_metabat2.out.coverage)
@@ -170,11 +162,29 @@ workflow binning {
     emit:
     metabat2_bins=binning_with_metabat2.out.metabat2_bins
     sample_name=binning_with_metabat2.out.sample_name
+    reads=reads
 
 }
 
 
+workflow map_reads_to_fasta{
+    take:
+    sample_name
+    reads
+    fasta_file
 
+    main:
+    index_bowtie2(fasta_file)
+    align_bowtie2(sample_name,index_bowtie2.out.reference_genome,reads,index_bowtie2.out.bowtie2_index_files)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
+
+    emit:
+    bowtie2_sam=align_bowtie2.out.bowtie2_sam
+    sorted_bam=convert_sam_to_sorted_bam.out.sorted_bam 
+    sample_name=sample_name
+    reads=reads
+    fasta_file=fasta_file
+}
 
 
 // Include modules
