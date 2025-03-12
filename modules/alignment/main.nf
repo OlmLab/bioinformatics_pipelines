@@ -32,6 +32,7 @@ process align_bowtie2 {
     path "${sample_name}_bowtie2.sam", emit: bowtie2_sam
     val paired ,emit: paired
     val sample_name, emit: sample_name
+    path reads, emit: reads
     script:
     if (reads.size() == 2) {
         paired=true
@@ -125,6 +126,7 @@ process get_unmapped_reads {
     output:
     path "${bam_file.baseName}.unmapped*fastq", emit: unmapped_reads
     val sample_name, emit: sample_name
+    val paired, emit: paired
     script:
     if (paired) {
         """
@@ -167,4 +169,36 @@ process  get_mapped_reads{
             samtools fastq -1 ${bam_file.baseName}.mapped.fastq
         """
     }
+}
+
+process map_reads_fasta_pairs{
+    /*
+    * This process lumps indexing and mapping of reads to a genome. It  is useful for when we have read-genome pairs.
+    */
+    input:
+    val(sample_name)
+    path(reads)
+    val(reference_fasta)
+    val(paired)
+    output:
+    path reads, emit: reads
+    path reference_fasta, emit: reference_fasta
+    path "${sample_name}.sorted.bam", emit: sorted_bam
+    val sample_name, emit: sample_name
+    val paired, emit: paired
+
+    script:
+    """
+    bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+    bowtie2 \\
+        -x ${reference_fasta} \\
+        -1 ${reads[0]} \\
+        -2 ${reads[1]} \\
+        -S ${sample_name}_bowtie2.sam \\
+        --threads ${task.cpus} \\
+    
+    samtools view -bS ${sample_name}_bowtie2.sam | samtools sort -o ${sample_name}.sorted.bam
+    """
+
+
 }

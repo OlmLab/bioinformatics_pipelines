@@ -131,6 +131,7 @@ workflow quality_control {
     emit:
         qc_reads=get_unmapped_reads.out.unmapped_reads
         sample_name=get_unmapped_reads.out.sample_name
+        paired=convert_sam_to_sorted_bam.out.paired
 }
 
 workflow assembly {
@@ -140,13 +141,13 @@ workflow assembly {
 
     main:
     assemble_with_megahit(sample_name, reads)
-    map_reads_to_fasta(assemble_with_megahit.out.sample_name, assemble_with_megahit.out.reads, assemble_with_megahit.out.contigs)
+    map_reads_fasta_pairs(assemble_with_megahit.out.sample_name,assemble_with_megahit.out.reads, assemble_with_megahit.out.contigs,assemble_with_megahit.out.paired)
     
     emit:
-    contigs=map_reads_to_fasta.out.fasta_file
-    sorted_bams=map_reads_to_fasta.out.sorted_bam
-    sample_name=map_reads_to_fasta.out.sample_name
-    reads=map_reads_to_fasta.out.reads
+    contigs=map_reads_fasta_pairs.out.reference_fasta
+    sorted_bams=map_reads_fasta_pairs.out.sorted_bam
+    sample_name=map_reads_fasta_pairs.out.sample_name
+    reads=map_reads_fasta_pairs.out.reads
 }
     
 workflow binning {
@@ -156,8 +157,8 @@ workflow binning {
     assembly
     reads
     main:
-    get_coverage_for_metabat2(sample_name, sorted_bams)
-    binning_with_metabat2(get_coverage_for_metabat2.out.sample_name,assembly,get_coverage_for_metabat2.out.coverage)
+    get_coverage_for_metabat2(sample_name, sorted_bams, assembly)
+    binning_with_metabat2(get_coverage_for_metabat2.out.sample_name,get_coverage_for_metabat2.out.contig,get_coverage_for_metabat2.out.coverage)
 
     emit:
     metabat2_bins=binning_with_metabat2.out.metabat2_bins
@@ -167,23 +168,7 @@ workflow binning {
 }
 
 
-workflow map_reads_to_fasta{
-    take:
-    sample_name
-    reads
-    fasta_file
 
-    main:
-    index_bowtie2(fasta_file,sample_name)
-    align_bowtie2(sample_name,index_bowtie2.out.reference_genome,reads,index_bowtie2.out.bowtie2_index_files)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
-
-    emit:
-    sorted_bam=convert_sam_to_sorted_bam.out.sorted_bam 
-    sample_name=sample_name
-    reads=reads
-    fasta_file=fasta_file
-}
 
 
 // Include modules
@@ -198,6 +183,7 @@ include {
     convert_sam_to_sorted_bam;
     get_unmapped_reads;
     get_mapped_reads;
+    map_reads_fasta_pairs
         } from "./modules/alignment"
 
 include {assemble_with_megahit} from "./modules/assembly"

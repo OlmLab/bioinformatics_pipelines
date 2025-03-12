@@ -8,9 +8,11 @@ process  get_coverage_for_metabat2
     input:
     val sample_name
     path sorted_bam
+    path contig
     output:
     path "${sample_name}_coverage.txt", emit: coverage
     val sample_name, emit: sample_name
+    path contig, emit: contig
     script:
     """
     jgi_summarize_bam_contig_depths \\

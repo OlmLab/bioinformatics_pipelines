@@ -15,8 +15,10 @@ process assemble_with_megahit{
     path "megahit_out/*"
     val sample_name, emit: sample_name
     path reads, emit: reads
+    val paired , emit: paired
     
     script:
+    paired=(reads.size() == 2)
     if (reads.size() == 2) {
         """
         megahit \
