@@ -176,10 +176,10 @@ process map_reads_fasta_pairs{
     * This process lumps indexing and mapping of reads to a genome. It  is useful for when we have read-genome pairs.
     */
     input:
-    val(sample_name)
-    path(reads)
-    val(reference_fasta)
-    val(paired)
+    val sample_name
+    path reads
+    val reference_fasta
+    val paired
     output:
     path reads, emit: reads
     path reference_fasta, emit: reference_fasta
