@@ -141,7 +141,13 @@ workflow assembly {
 
     main:
     assemble_with_megahit(sample_name, reads)
-    map_reads_fasta_pairs(assemble_with_megahit.out.sample_name,assemble_with_megahit.out.reads, assemble_with_megahit.out.contigs,assemble_with_megahit.out.paired)
+
+    map_reads_fasta_pairs(   
+                             assemble_with_megahit.out.sample_name,
+                             assemble_with_megahit.out.reads,
+                             assemble_with_megahit.out.contigs,
+                             assemble_with_megahit.out.paired
+                        )
     
     emit:
     contigs=map_reads_fasta_pairs.out.reference_fasta

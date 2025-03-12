@@ -178,7 +178,7 @@ process map_reads_fasta_pairs{
     input:
     val sample_name
     path reads
-    val reference_fasta
+    path reference_fasta
     val paired
     output:
     path reads, emit: reads
