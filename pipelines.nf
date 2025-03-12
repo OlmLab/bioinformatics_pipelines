@@ -146,7 +146,7 @@ workflow assembly {
     contigs=map_reads_to_fasta.out.fasta_file
     sorted_bams=map_reads_to_fasta.out.sorted_bam
     sample_name=map_reads_to_fasta.out.sample_name
-    reads=assemble_with_megahit.out.reads
+    reads=map_reads_to_fasta.out.reads
 }
     
 workflow binning {
