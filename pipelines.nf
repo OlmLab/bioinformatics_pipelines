@@ -89,7 +89,7 @@ workflow roadmap_2 {
     fasta_file_ch=Channel.fromList(fasta_file).map{t->file(t)}
     sample_names_ch=Channel.fromList(sample_names)
     reads_ch=Channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
-    index_bowtie2(fasta_file_ch)
+    index_bowtie2(fasta_file_ch,sample_names_ch)
     samples_reads=sample_names_ch.merge(reads_ch)
     samples_reads.combine(index_bowtie2.out.bowtie2_index_files.merge(index_bowtie2.out.reference_genome)).multiMap{t->
     sample_names_:t[0]
@@ -98,7 +98,7 @@ workflow roadmap_2 {
     reference_genome_:tuple(t[-1])
     }.set{split_results}
     align_bowtie2(split_results.sample_names_,split_results.reference_genome_,split_results.reads_,split_results.index_bowtie2_)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
     profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam.merge(split_results.reference_genome_))
     profile_with_instrain.out.instrain_profiles.groupTuple(by:0).set{profiles}
     compare_instrain_profiles(profiles)
@@ -122,15 +122,15 @@ workflow quality_control {
 
     main:
     read_qc_fastp(sample_name, reads)
-    index_bowtie2(host_genome)
+    index_bowtie2(host_genome,sample_name)
     align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
-    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
-    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,align_bowtie2.out.paired)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
+    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
+    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
 
     emit:
         qc_reads=get_unmapped_reads.out.unmapped_reads
-        sample_name=read_qc_fastp.out.sample_name
+        sample_name=get_unmapped_reads.out.sample_name
 }
 
 workflow assembly {
@@ -174,12 +174,11 @@ workflow map_reads_to_fasta{
     fasta_file
 
     main:
-    index_bowtie2(fasta_file)
+    index_bowtie2(fasta_file,sample_name)
     align_bowtie2(sample_name,index_bowtie2.out.reference_genome,reads,index_bowtie2.out.bowtie2_index_files)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
 
     emit:
-    bowtie2_sam=align_bowtie2.out.bowtie2_sam
     sorted_bam=convert_sam_to_sorted_bam.out.sorted_bam 
     sample_name=sample_name
     reads=reads
