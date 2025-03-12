@@ -6,9 +6,11 @@ process index_bowtie2 {
     publishDir "${params.output_dir}/bowtie2_index"
     input:
     path reference_genome
+    val sample_name
     output:
     path "*.bt2" , emit: bowtie2_index_files
     path reference_genome , emit: reference_genome
+    val sample_name, emit: sample_name
     script:
     """
     bowtie2-build --threads ${task.cpus} ${reference_genome} ${reference_genome}
@@ -29,6 +31,7 @@ process align_bowtie2 {
     output:
     path "${sample_name}_bowtie2.sam", emit: bowtie2_sam
     val paired ,emit: paired
+    val sample_name, emit: sample_name
     script:
     if (reads.size() == 2) {
         paired=true
@@ -62,8 +65,10 @@ process convert_sam_to_bam {
     publishDir "${params.output_dir}/samtools_conversion"
     input:
     path sam_file
+    val sample_name
     output:
     path "${sam_file.baseName}.sorted.bam", emit: sorted_bam
+    val sample_name, emit: sample_name
     script:
     """
     samtools view -bS ${sam_file} > ${sam_file.baseName}.bam
@@ -77,8 +82,10 @@ process sort_bam {
     publishDir "${params.output_dir}/samtools_sort"
     input:
     path bam_file
+    val sample_name
     output:
     path "${bam_file.baseName}.sorted.bam", emit: sorted_bam
+    val sample_name, emit: sample_name
     script:
     """
     samtools sort ${bam_file} -o ${bam_file.baseName}.sorted.bam
@@ -93,8 +100,12 @@ process convert_sam_to_sorted_bam {
     publishDir "${params.output_dir}/samtools_conversion"
     input:
     path sam_file
+    val sample_name
+    val paired
     output:
     path "${sam_file.baseName}.sorted.bam", emit: sorted_bam
+    val sample_name, emit: sample_name
+    val paired, emit: paired
     script:
     """
     samtools view -bS ${sam_file} | samtools sort -o ${sam_file.baseName}.sorted.bam
@@ -110,8 +121,10 @@ process get_unmapped_reads {
     input:
     path bam_file
     val paired
+    val sample_name
     output:
     path "${bam_file.baseName}.unmapped*fastq", emit: unmapped_reads
+    val sample_name, emit: sample_name
     script:
     if (paired) {
         """
@@ -136,9 +149,11 @@ process  get_mapped_reads{
     input:
     path bam_file
     val paired
+    val sample_name
     output:
     tuple path("${bam_file.baseName}.mapped_1.fastq"), path("${bam_file.baseName}.mapped_2.fastq"), emit: mapped_fastq_1_2, optional: true
     path "${bam_file.baseName}.mapped.fastq", emit: mapped_fastq,optional: true
+    val sample_name, emit: sample_name
     script:
     if (paired) {
         """
