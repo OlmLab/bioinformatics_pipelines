@@ -74,7 +74,6 @@ workflow roadmap_1{
     quality_control(sample_name, reads, host_genome)
     assembly(quality_control.out.sample_name, quality_control.out.qc_reads)
     binning(assembly.out.sample_name, assembly.out.sorted_bams, assembly.out.contigs,assembly.out.reads)
-    estimate_abundance_coverm(binning.out.sample_name, binning.out.metabat2_bins, binning.out.reads, params.binning_extension)    
     emit:
     metabat2_bins=binning.out.metabat2_bins
 }
@@ -103,11 +102,6 @@ workflow roadmap_2 {
     profile_with_instrain.out.instrain_profiles.groupTuple(by:0).set{profiles}
     compare_instrain_profiles(profiles)
 }
-
-
-
-    // compare_instrain_profiles(profiles, "${fasta_file.baseName}_instrain_compare")
-
     
 
 workflow quality_control {
@@ -122,7 +116,7 @@ workflow quality_control {
 
     main:
     read_qc_fastp(sample_name, reads)
-    index_bowtie2(host_genome,sample_name)
+    index_bowtie2(host_genome,host_genome.baseName)
     align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
     get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
