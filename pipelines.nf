@@ -85,22 +85,16 @@ workflow roadmap_2 {
     reads
     fasta_file
     main:
-    fasta_file_ch=Channel.fromList(fasta_file).map{t->file(t)}
+    concatenate_files(fasta_file,"genomes_db.fasta")
+    make_stb_file_instrain(fasta_file,"genomes_db")
+    index_bowtie2(concatenate_files.out.concatenated_file, "genomes_db")
+    reads_ch=channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
     sample_names_ch=Channel.fromList(sample_names)
-    reads_ch=Channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
-    index_bowtie2(fasta_file_ch,sample_names_ch)
-    samples_reads=sample_names_ch.merge(reads_ch)
-    samples_reads.combine(index_bowtie2.out.bowtie2_index_files.merge(index_bowtie2.out.reference_genome)).multiMap{t->
-    sample_names_:t[0]
-    reads_:tuple(t[1],t[2])
-    index_bowtie2_:tuple(t[3],t[4],t[5],t[6],t[7],t[8])
-    reference_genome_:tuple(t[-1])
-    }.set{split_results}
-    align_bowtie2(split_results.sample_names_,split_results.reference_genome_,split_results.reads_,split_results.index_bowtie2_)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
-    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam.merge(split_results.reference_genome_))
-    profile_with_instrain.out.instrain_profiles.groupTuple(by:0).set{profiles}
-    compare_instrain_profiles(profiles)
+    align_bowtie2(sample_names_ch, index_bowtie2.out.reference_genome, reads_ch, index_bowtie2.out.bowtie2_index_files)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
+    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,concatenate_files.out.concatenated_file, make_stb_file_instrain.out.stb_file)
+    profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
+    compare_instrain_profiles(all_profiles, make_stb_file_instrain.out.stb_file)
 }
     
 
@@ -190,10 +184,14 @@ include {assemble_with_megahit} from "./modules/assembly"
 
 include {get_coverage_for_metabat2;binning_with_metabat2} from "./modules/binning"
 
-include {tableToDict} from "./modules/files"
+include {tableToDict;
+        concatenate_files;
+        } from "./modules/files"
 
 include {get_sequences_from_sra} from "./modules/download"
 
 include {estimate_abundance_coverm} from './modules/abundance'
 
-include {compare_instrain_profiles;profile_with_instrain} from './modules/strain'
+include {compare_instrain_profiles;
+         profile_with_instrain;
+         make_stb_file_instrain} from './modules/strain'

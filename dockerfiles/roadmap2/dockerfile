@@ -4,6 +4,7 @@ RUN conda create -n inStrain python=3.8 bioconda::instrain biopython=1.74 -y
 RUN conda run -n inStrain conda install coverm samtools 
 RUN conda run -n inStrain conda install -c bioconda bowtie2 
 RUN conda run -n inStrain conda install numba
+RUN conda run -n inStrain pip install drep
 RUN wget https://github.com/biod/sambamba/releases/download/v1.0.1/sambamba-1.0.1-linux-amd64-static.gz
 RUN gzip -d sambamba-1.0.1-linux-amd64-static.gz
 RUN chmod +x sambamba-1.0.1-linux-amd64-static

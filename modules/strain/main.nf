@@ -3,14 +3,16 @@ process profile_with_instrain{
     * This process profiles the bins using InStrain.
     * It takes in the bins and reads, and outputs the profiling results.
     */
-    publishDir "${params.output_dir}/instrain/${fasta.baseName}"
+    publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}"
     input:
-    tuple(path(bamfile),path(fasta))   
+    path bamfile
+    path fastafile 
+    path stb_file
     output:
-    tuple val(fasta.baseName),path("${bamfile.baseName}_${fasta.baseName}_instrain_profile"),emit: instrain_profiles
+    path("${bamfile.baseName}_instrain_profile"),emit: instrain_profiles
     script:
     """
-    inStrain profile ${bamfile} ${fasta} -o ${bamfile.baseName}_${fasta.baseName}_instrain_profile -p ${task.cpus}
+    inStrain profile ${bamfile} ${fastafile} -o ${bamfile.baseName}_instrain_profile -p ${task.cpus} -s ${stb_file} --database_mode
     """
 }
 
@@ -19,14 +21,33 @@ process compare_instrain_profiles{
     * This process compares the InStrain profiles of the bins.
     * It takes in the profiles and outputs the comparison results.
     */
-    publishDir "${params.output_dir}/instrain/${fastafile}"
+    publishDir "${params.output_dir}/instrain/compare"
     input:
-    tuple val(fastafile),path(instrain_profiles)
+    path instrain_profiles 
+    path stb_file
     output:
-    path "${fastafile}_compare", emit: instrain_compare
+    path "is_compare", emit: instrain_compare
     
     script:
     """
-    inStrain compare -i ${instrain_profiles} -o ${fastafile}_compare -p ${task.cpus}
+    inStrain compare -i ${instrain_profiles} -o is_compare -p  ${task.cpus} -s ${stb_file} --database_mode
+
+    """
+}
+
+process make_stb_file_instrain{
+    /*
+    * This process creates a stb file for InStrain.
+    * It takes in the comparison results and outputs the STB file.
+    */
+    publishDir "${params.output_dir}/instrain/stb"
+    input:
+    path fastafiles
+    val name
+    output:
+    path "${name}.stb", emit: stb_file
+    script:
+    """
+    parse_stb.py --reverse -f ${fastafiles} -o ${name}.stb
     """
 }

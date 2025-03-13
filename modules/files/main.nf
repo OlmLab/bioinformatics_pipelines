@@ -4,15 +4,15 @@ process concatenate_files {
     */
     publishDir params.output_dir
     input:
-    file file_list
+    path file_list
     val output_file
 
     output:
-    file output_file
+    path "${output_file}", emit: concatenated_file
 
     script:
     """
-    cat ${file_list.join(" ")} > ${output_file}
+    cat ${file_list} > ${output_file}
     """
 }
 def tableToDict(file, delimiter = ',') {
