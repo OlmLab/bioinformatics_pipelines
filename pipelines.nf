@@ -38,9 +38,45 @@ workflow {
             fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].toList()
             roadmap_2(sample_names, reads, fasta_file)
         }
+
+        else if (params.roadmap_id=="roadmap_3")
+        {
+            if (params.input_type=="path")
+            {
+                genomes=files("${params.input_genomes}")
+
+                roadmap_3(genomes)
+            }
+        }
+        else if (params.roadmap_id=="roadmap_132")
+        {
+            if (!params.host_genome)
+            {
+                error "Please provide a host genome for decontamination in the roadmap_1 workflow."
+            }
+            if (params.input_type=="sra")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                sample_names=get_sequences_from_sra.out.sra_ids.collect()
+                reads=get_sequences_from_sra.out.fastq_files.collect()
+                roadmap_132(sample_names, reads, file(params.host_genome))
+            }
+            if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                reads_1=table["reads1"]
+                reads_2=table["reads2"]
+                reads=[reads_1,reads_2].transpose()
+                sample_name=table["sample_name"]
+                roadmap_132(sample_name, reads, file(params.host_genome))
+            }
+        }
+        else
+        {
+            error "Please provide a valid roadmap_id."
+        }
         
-
-
         
     }
     
@@ -97,7 +133,38 @@ workflow roadmap_2 {
     compare_instrain_profiles(all_profiles, make_stb_file_instrain.out.stb_file)
 }
     
+workflow roadmap_3 {
+    take:
+    genomes
+    
+    main:
+    genomes_list_file=write_genome_list(genomes)
+    dereplicate_drep(genomes,genomes_list_file)
 
+    emit:
+    dereplicated_genomes=dereplicate_drep.out.dereplicated_genomes
+
+}
+
+workflow roadmap_132{
+    /*
+    This workflow gets the bins from individual samples using roadmap 1, dereplicates them using roadmap 3, and then performs strain-level profiling using roadmap 2.
+    WARNING: This workflow is not fully tested and may not work as expected.
+    */
+    take:
+    sample_name
+    reads
+    host_genome
+
+    main:
+    sample_name_ch=Channel.fromList(sample_name)
+    reads_ch=channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
+    roadmap_1(sample_name_ch, reads_ch, host_genome)
+    dereplicated_genomes=roadmap_3(roadmap_1.out.metabat2_bins.collect())
+    roadmap_2(sample_name, reads, dereplicated_genomes)
+
+
+}
 workflow quality_control {
     /*
     This workflow takes raw sequencing reads and performs quality control and decontamination.
@@ -195,3 +262,5 @@ include {estimate_abundance_coverm} from './modules/abundance'
 include {compare_instrain_profiles;
          profile_with_instrain;
          make_stb_file_instrain} from './modules/strain'
+
+include { dereplicate_drep;write_genome_list } from './modules/dereplication'

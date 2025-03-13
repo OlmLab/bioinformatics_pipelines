@@ -1,0 +1,24 @@
+FROM continuumio/anaconda3
+RUN conda config --add channels conda-forge
+RUN conda create -n drep python=3.8
+RUN conda run -n drep conda install  -c bioconda drep
+RUN git clone https://github.com/abadona/qsimscan.git
+RUN apt update && apt install -y build-essential 
+RUN cd qsimscan && make
+RUN mv qsimscan/nsimscan/nsimscan /usr/local/bin/
+RUN git clone https://github.com/DaehwanKimLab/centrifuge.git
+RUN cd centrifuge && make
+RUN mv centrifuge/centrifuge /usr/local/bin/
+RUN mv centrifuge/centrifuge-class /usr/local/bin/
+RUN rm -rf centrifuge && rm -rf qsimscan
+RUN wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz
+RUN mkdir checkm_db
+RUN tar -xvzf checkm_data_2015_01_16.tar.gz -C checkm_db
+RUN rm checkm_data_2015_01_16.tar.gz
+ENV CHECKM_DATA_PATH=/checkm_db
+RUN echo "source activate drep" >> ~/.bashrc
+RUN conda init bash
+ENV  PATH="/opt/conda/envs/drep/bin:$PATH"
+
+
+
