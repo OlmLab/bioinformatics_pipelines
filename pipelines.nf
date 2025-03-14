@@ -48,7 +48,7 @@ workflow {
                 roadmap_3(genomes)
             }
         }
-        else if (params.roadmap_id=="roadmap_132")
+        else if (params.roadmap_id=="roadmap_1_3_2")
         {
             if (!params.host_genome)
             {
@@ -60,7 +60,7 @@ workflow {
                 get_sequences_from_sra(Channel.fromList(table["Run"]))
                 sample_names=get_sequences_from_sra.out.sra_ids.collect()
                 reads=get_sequences_from_sra.out.fastq_files.collect()
-                roadmap_132(sample_names, reads, file(params.host_genome))
+                roadmap_1_3_2(sample_names, reads, file(params.host_genome))
             }
             if (params.input_type=="local")
             {
@@ -69,7 +69,7 @@ workflow {
                 reads_2=table["reads2"]
                 reads=[reads_1,reads_2].transpose()
                 sample_name=table["sample_name"]
-                roadmap_132(sample_name, reads, file(params.host_genome))
+                roadmap_1_3_2(sample_name, reads, file(params.host_genome))
             }
         }
         else
@@ -146,7 +146,7 @@ workflow roadmap_3 {
 
 }
 
-workflow roadmap_132{
+workflow roadmap_1_3_2{
     /*
     This workflow gets the bins from individual samples using roadmap 1, dereplicates them using roadmap 3, and then performs strain-level profiling using roadmap 2.
     WARNING: This workflow is not fully tested and may not work as expected.
