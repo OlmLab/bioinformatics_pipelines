@@ -35,7 +35,7 @@ workflow {
             reads_2=table["reads2"]
             reads=[reads_1,reads_2].transpose()
             sample_names=table["sample_name"].toList()
-            fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].toList()
+            fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)}
             roadmap_2(sample_names, reads, fasta_file)
         }
 
@@ -121,8 +121,9 @@ workflow roadmap_2 {
     reads
     fasta_file
     main:
-    concatenate_files(fasta_file,"genomes_db.fasta")
-    make_stb_file_instrain(fasta_file,"genomes_db")
+    add_prefix_to_fasta(fasta_file)
+    concatenate_files(add_prefix_to_fasta.out.prefixed_fasta,"genomes_db.fasta")
+    make_stb_file_instrain(add_prefix_to_fasta.out.prefixed_fasta,"genomes_db")
     index_bowtie2(concatenate_files.out.concatenated_file, "genomes_db")
     reads_ch=channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
     sample_names_ch=Channel.fromList(sample_names)
@@ -249,7 +250,9 @@ include {
 
 include {assemble_with_megahit} from "./modules/assembly"
 
-include {get_coverage_for_metabat2;binning_with_metabat2} from "./modules/binning"
+include {get_coverage_for_metabat2;
+        binning_with_metabat2;
+        add_prefix_to_fasta} from "./modules/binning"
 
 include {tableToDict;
         concatenate_files;

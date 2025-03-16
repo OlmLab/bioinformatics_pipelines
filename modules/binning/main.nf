@@ -46,3 +46,16 @@ process binning_with_metabat2
         --outFile ${sample_name}_metabat2_bins \\
     """
 }
+
+process add_prefix_to_fasta {
+    input:
+    path fasta_file
+    output:
+    path "prefixed_fasta/*", emit: prefixed_fasta
+    script:
+    """
+    add_prefix_to_fasta.py \\
+    ${fasta_file} \\
+    --output-dir prefixed_fasta 
+    """
+}
