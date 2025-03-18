@@ -72,6 +72,32 @@ workflow {
                 roadmap_1_3_2(sample_name, reads, file(params.host_genome))
             }
         }
+    else if (params.roadmap_id=="roadmap_4")
+    {
+        if (!params.host_genome)
+            {
+                error "Please provide a host genome for decontamination in the roadmap_1 workflow."
+            }
+
+
+            if (params.input_type=="sra")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                roadmap_4(get_sequences_from_sra.out.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+            }
+            if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                reads_1=Channel.fromPath(table["reads1"])
+                reads_2=Channel.fromPath(table["reads2"])
+                reads=reads_1.merge(reads_2)
+                sample_name=Channel.fromList(table["sample_name"])
+                roadmap_4(sample_name, reads, file(params.host_genome))
+            }
+        }
+
+
         else
         {
             error "Please provide a valid roadmap_id."
@@ -145,6 +171,18 @@ workflow roadmap_3 {
     emit:
     dereplicated_genomes=dereplicate_drep.out.dereplicated_genomes
 
+}
+
+workflow roadmap_4 {
+    take:
+    sample_name
+    reads
+    host_genome
+    main:
+    quality_control(sample_name, reads, host_genome)
+    emit:
+    quc_reads=quality_control.out.qc_reads
+    
 }
 
 workflow roadmap_1_3_2{
