@@ -2,6 +2,7 @@ params.output_dir = "./output_is"
 params.paired = false
 params.host_indexed = false
 params.binning_extension = "fa"
+params.add_fasta_prefix = true
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {
@@ -31,13 +32,37 @@ workflow {
         else if (params.roadmap_id=="roadmap_2")
         {
             table=tableToDict(file("${params.input_reads}"))
-            reads_1=table["reads1"]
-            reads_2=table["reads2"]
-            reads=[reads_1,reads_2].transpose()
-            sample_names=table["sample_name"].toList()
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_names=Channel.from(table["sample_name"])
+            
+            if (params.input_fastas)
+            {
+            if (params.is_genome_db||params.is_stb_db)
+            {
+                error "If you provide a list of fasta files, you cannot provide a genome database or STB file."
+            }
+            else
+            {
             fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)}
+            }
+            }
+
+            if (params.is_genome_db)
+            {
+                if (!params.is_stb_db)
+                {
+                    error "If you provide a genome database, you must also provide an STB file."
+                }
+                else{
+                    fasta_file=file(params.is_genome_db)
+                }
+            }
             roadmap_2(sample_names, reads, fasta_file)
         }
+
+
 
         else if (params.roadmap_id=="roadmap_3")
         {
@@ -65,10 +90,11 @@ workflow {
             if (params.input_type=="local")
             {
                 table=tableToDict(file("${params.input_file}"))
-                reads_1=table["reads1"]
-                reads_2=table["reads2"]
-                reads=[reads_1,reads_2].transpose()
+                reads_1=Channel.fromPath(table["reads1"])
+                reads_2=Channel.fromPath(table["reads2"])
+                reads=reads_1.merge(reads_2)
                 sample_name=table["sample_name"]
+                sample_name=Channel.fromList(sample_name)
                 roadmap_1_3_2(sample_name, reads, file(params.host_genome))
             }
         }
@@ -147,17 +173,44 @@ workflow roadmap_2 {
     reads
     fasta_file
     main:
-    add_prefix_to_fasta(fasta_file)
-    concatenate_files(add_prefix_to_fasta.out.prefixed_fasta,"genomes_db.fasta")
-    make_stb_file_instrain(add_prefix_to_fasta.out.prefixed_fasta,"genomes_db")
-    index_bowtie2(concatenate_files.out.concatenated_file, "genomes_db")
-    reads_ch=channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
-    sample_names_ch=Channel.fromList(sample_names)
-    align_bowtie2(sample_names_ch, index_bowtie2.out.reference_genome, reads_ch, index_bowtie2.out.bowtie2_index_files)
+    if (!params.is_genome_db)
+    {
+        if (params.add_fasta_prefix)
+        {
+            add_prefix_to_fasta(fasta_file)
+            fasta_file=add_prefix_to_fasta.out.prefixed_fasta
+        }
+        else
+        {
+            fasta_file=fasta_file
+        }
+        concatenate_files(fasta_file, "genomes_db.fasta")
+        genome_db=concatenate_files.out.concatenated_file
+    }
+    else
+    {
+        genome_db=file(params.is_genome_db)
+    }
+
+    if (!params.is_stb_db)
+    {
+
+        make_stb_file_instrain(fasta_file, "genomes_db")
+        stb=make_stb_file_instrain.out.stb_file
+    }
+    else
+    {
+        stb=file(params.is_stb_db)
+    }
+
+
+
+    index_bowtie2(genome_db, "genomes_db")
+    align_bowtie2(sample_names, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
-    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,concatenate_files.out.concatenated_file, make_stb_file_instrain.out.stb_file)
+    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,genome_db, stb)
     profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
-    compare_instrain_profiles(all_profiles, make_stb_file_instrain.out.stb_file)
+    compare_instrain_profiles(all_profiles, stb)
 }
     
 workflow roadmap_3 {
@@ -165,8 +218,8 @@ workflow roadmap_3 {
     genomes
     
     main:
-    genomes_list_file=write_genome_list(genomes)
-    dereplicate_drep(genomes,genomes_list_file)
+    write_genome_list(genomes)
+    dereplicate_drep(genomes,write_genome_list.out.genomes_list)
 
     emit:
     dereplicated_genomes=dereplicate_drep.out.dereplicated_genomes
@@ -181,7 +234,7 @@ workflow roadmap_4 {
     main:
     quality_control(sample_name, reads, host_genome)
     emit:
-    quc_reads=quality_control.out.qc_reads
+    qc_reads=quality_control.out.qc_reads
     
 }
 
@@ -196,10 +249,11 @@ workflow roadmap_1_3_2{
     host_genome
 
     main:
-    sample_name_ch=Channel.fromList(sample_name)
-    reads_ch=channel.fromList(reads).map{t->tuple(file(t[0]),file(t[1]))}
-    roadmap_1(sample_name_ch, reads_ch, host_genome)
+    roadmap_1(sample_name, reads, host_genome)
+    params.genomes_exctension=params.binning_extension
     dereplicated_genomes=roadmap_3(roadmap_1.out.metabat2_bins.collect())
+    params.is_genome_db=null
+    params.is_stb_db=null
     roadmap_2(sample_name, reads, dereplicated_genomes)
 
 

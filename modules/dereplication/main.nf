@@ -1,12 +1,16 @@
-def write_genome_list(genomes) {
-    def genome_list_file = file("${params.output_dir}/dereplication_drep/genome_list.txt")
-    (genome_list_file.parent).mkdirs() 
-    genome_list_file.text = genomes.collect { genome ->
-        genome.getName()
-    }.join("\n")
-    return genome_list_file
-}
 
+process  write_genome_list {
+
+    publishDir "${params.output_dir}/dereplication_drep"
+    input:
+    path genomes
+    output:
+    path "genome_list.txt", emit: genomes_list
+    script:
+    """
+    ls * > genome_list.txt
+    """
+}
 process dereplicate_drep{
     publishDir "${params.output_dir}/dereplication_drep"
     input:
