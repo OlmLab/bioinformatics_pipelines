@@ -250,10 +250,7 @@ workflow roadmap_1_3_2{
 
     main:
     roadmap_1(sample_name, reads, host_genome)
-    params.genomes_exctension=params.binning_extension
     dereplicated_genomes=roadmap_3(roadmap_1.out.metabat2_bins.collect())
-    params.is_genome_db=null
-    params.is_stb_db=null
     roadmap_2(sample_name, reads, dereplicated_genomes)
 
 
