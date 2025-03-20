@@ -3,6 +3,7 @@ process profile_with_instrain{
     * This process profiles the bins using InStrain.
     * It takes in the bins and reads, and outputs the profiling results.
     */
+    errorStrategy 'ignore'
     publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}"
     input:
     path bamfile
