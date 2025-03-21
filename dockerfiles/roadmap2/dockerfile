@@ -15,3 +15,4 @@ ENV  PATH="/opt/conda/envs/inStrain/bin:$PATH"
 RUN conda run -n inStrain pip install click aiofiles
 ADD add_prefix_to_fasta.py /usr/local/bin/ 
 RUN chmod +x  /usr/local/bin/add_prefix_to_fasta.py
+RUN conda run -n inStrain conda install -c bioconda prodigal 

@@ -203,12 +203,21 @@ workflow roadmap_2 {
         stb=file(params.is_stb_db)
     }
 
+    if (!params.is_genes)
+    {
+        find_genes_prodigal(fasta_file)
+        genes=find_genes_prodigal.out.genes_fna
+    }
+    else
+    {
+        genes=file(params.is_genes)
+    }
 
 
     index_bowtie2(genome_db, "genomes_db")
     align_bowtie2(sample_names, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
     convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
-    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,genome_db, stb)
+    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,genome_db, stb, genes)
     profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
     compare_instrain_profiles(all_profiles, stb)
 }
@@ -250,7 +259,10 @@ workflow roadmap_1_3_2{
 
     main:
     roadmap_1(sample_name, reads, host_genome)
+    params.genomes_exctension=params.binning_extension
     dereplicated_genomes=roadmap_3(roadmap_1.out.metabat2_bins.collect())
+    params.is_genome_db=null
+    params.is_stb_db=null
     roadmap_2(sample_name, reads, dereplicated_genomes)
 
 
@@ -356,3 +368,5 @@ include {compare_instrain_profiles;
          make_stb_file_instrain} from './modules/strain'
 
 include { dereplicate_drep;write_genome_list } from './modules/dereplication'
+
+include {find_genes_prodigal} from './modules/genes'

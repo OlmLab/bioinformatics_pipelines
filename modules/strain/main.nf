@@ -3,17 +3,17 @@ process profile_with_instrain{
     * This process profiles the bins using InStrain.
     * It takes in the bins and reads, and outputs the profiling results.
     */
-    errorStrategy 'ignore'
     publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}"
     input:
     path bamfile
     path fastafile 
     path stb_file
+    path genes
     output:
     path("${bamfile.baseName}_instrain_profile"),emit: instrain_profiles
     script:
     """
-    inStrain profile ${bamfile} ${fastafile} -o ${bamfile.baseName}_instrain_profile -p ${task.cpus} -s ${stb_file} --database_mode
+    inStrain profile ${bamfile} ${fastafile} -o ${bamfile.baseName}_instrain_profile -p ${task.cpus} -s ${stb_file} --database_mode --gene_file ${genes}
     """
 }
 
