@@ -82,8 +82,11 @@ If you want to choose the second option, you can run the roadmap using the follo
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
 ```
-**NOTE** You should change the config file according to your environment.
+#### Optional arguments
+-   **--is_genes**: If you already have the genes of your input fasta(s) you can provide the path to the genes file. Otherwise, the genes will be extracted from the input fasta(s) using prodigal.
 
+**NOTE** You should change the config file according to your environment.
+----------------
 ## roadmap_3
 ### Description
 This roadmap is designed to perform dereplication on a set of provided genomes. The workflow starts with the following steps:

@@ -205,7 +205,7 @@ workflow roadmap_2 {
 
     if (!params.is_genes)
     {
-        find_genes_prodigal(fasta_file)
+        find_genes_prodigal(genome_db)
         genes=find_genes_prodigal.out.genes_fna
     }
     else
