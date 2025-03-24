@@ -8,7 +8,7 @@ process index_bowtie2 {
     path reference_genome
     val sample_name
     output:
-    path "*.bt2" , emit: bowtie2_index_files
+    path "*.bt2*" , emit: bowtie2_index_files
     path reference_genome , emit: reference_genome
     val sample_name, emit: sample_name
     script:
