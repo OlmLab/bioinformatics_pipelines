@@ -3,6 +3,8 @@ params.paired = false
 params.host_indexed = false
 params.binning_extension = "fa"
 params.add_fasta_prefix = true
+params.is_genome_db=null // default is null
+params.is_stb_db=null // default is null
 
 // ###### MAIN WORKFLOW ###### //
 workflow {
