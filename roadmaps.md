@@ -115,7 +115,7 @@ This roadmap has identical input to roadmap_1. You can either provide a CSV file
 nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-host-genome>" --input_type "local" --input_file <path-to-csv-files> -c configs/local.config
 ```
 **NOTE** You should change the config file according to your environment. The input_file should be a CSV file containing the sample names and reads or a CSV file containing the accession ids of the samples. The host genome is also required.
-
+----------------
 ## roadmap_4
 ### Description
 This roadmap is a subset of roadmap_1. It is designed to QC the reads and decontaminate them using a reference genome. The workflow starts with the following steps
@@ -141,3 +141,32 @@ Also you need to provide the path to the host genome. An example run with this m
     ```bash
     nextflow run pipelines.nf --roadmap roadmap_4 --host_genome "<path-to-reference-genome-fasta" --input_type "sra" --input_file <path-to-csv-files> -c configs/local.config
     ```
+
+---------------
+## roadmap_3_2
+### Description
+This roadmap first dereplicates a list of input genomes and then performs strain-level analysis using inStrain for the input reads. This roadmapcan be helpful for users who want to perform comparative genomics on closely related genomes. The workflow starts with the following steps:
+1. **Dereplicating the genomes**: The genomes are dereplicated using dRep.
+2. **Aligning the reads to the concatenated fasta file** : The reads are aligned to the concatenated fasta file using bowtie2. This step generates sorted BAM file for each sample.
+3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
+4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
+
+![roadmap_3_2](imgs/dag-roadmap_3_2.svg)
+
+### How to run
+
+To run this roadmap, you need to provide a CSV file containing the following columns:
+-   sample_name
+-   reads1
+-   reads2
+
+Also, you need to provide a CSV file containing the paths to the genomes you want to dereplicate. This file should contain one column:
+-   fasta_files (address to each fasta file)
+
+You can run the roadmap using the following command:
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_3_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
+```
+#### Relevant optional arguments
+--drep_s_ani : The average nucleotide identity threshold for dereplication. Default is 0.95
+

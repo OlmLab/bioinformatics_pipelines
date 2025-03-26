@@ -3,6 +3,8 @@ params.paired = false
 params.host_indexed = false
 params.binning_extension = "fa"
 params.add_fasta_prefix = true
+
+// ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {
@@ -121,10 +123,29 @@ workflow {
                 sample_name=Channel.fromList(table["sample_name"])
                 roadmap_4(sample_name, reads, file(params.host_genome))
             }
-        }
+    }
 
+    else if (params.roadmap_id=="roadmap_3_2")
+    {
+            if (!params.input_reads)
+            {
+                error "Please provide the reads information using the input_reads parameter."
+            }
+            if (!params.input_fastas)
+            {
+                error "Please provide the fasta files information using the input_fastas parameter."
+            }
+            table=tableToDict(file("${params.input_reads}"))
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_names=Channel.from(table["sample_name"])
+            fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)}
+            roadmap_3_2(sample_names, reads, fasta_file)
+    
+    }
 
-        else
+    else
         {
             error "Please provide a valid roadmap_id."
         }
@@ -133,26 +154,15 @@ workflow {
     }
     
 
-    
-
-
-
-workflow seqs_from_sra {
-    take:
-    sra_ids
-
-    main:
-    get_sequences_from_sra(sra_ids)
-
-    emit:
-    fastq_files=get_sequences_from_sra.out.fastq_files
-    sample_name=get_sequences_from_sra.out.sra_ids
-}
+// ###### Roadmaps ###### //
 
 
 workflow roadmap_1{
     // This roadmap takes the raw sequencing reads and performs:
-    // quality control, assembly, and binning.
+    // 1- quality control
+    // 2- assembly
+    // 3- binning.
+
     take:
     sample_name
     reads
@@ -166,8 +176,11 @@ workflow roadmap_1{
     metabat2_bins=binning.out.metabat2_bins
 }
 
-//
+
 workflow roadmap_2 {
+    // This roadmap takes a list of reads, their corresponding sample names, and a list of fasta files.
+    // It performs strain-level profiling using InStrain.
+
     take:
     sample_names
     reads
@@ -205,7 +218,7 @@ workflow roadmap_2 {
 
     if (!params.is_genes)
     {
-        find_genes_prodigal(genome_db)
+        find_genes_prodigal(fasta_file)
         genes=find_genes_prodigal.out.genes_fna
     }
     else
@@ -220,6 +233,10 @@ workflow roadmap_2 {
     profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,genome_db, stb, genes)
     profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
     compare_instrain_profiles(all_profiles, stb)
+    emit:
+    instrain_profiles=all_profiles
+
+
 }
     
 workflow roadmap_3 {
@@ -267,6 +284,26 @@ workflow roadmap_1_3_2{
 
 
 }
+
+workflow roadmap_3_2 {
+    // This roadmap is appropriate for ddereplicating a series of bins and then performing strain-level profiling using InStrain on the dereplicated bins.
+    // An example would be comparative genomics for closely related bins
+    take:
+    sample_names
+    reads
+    fasta_file
+    main:
+    roadmap_3(fasta_file.collect())
+    dereplicated_genomes=roadmap_3.out.dereplicated_genomes
+    roadmap_2(sample_names, reads, dereplicated_genomes)
+
+    emit:
+    instrain_profiles=roadmap_2.out.instrain_profiles
+
+}
+
+// ###### WORKFLOWS ###### //
+
 workflow quality_control {
     /*
     This workflow takes raw sequencing reads and performs quality control and decontamination.
@@ -329,6 +366,7 @@ workflow binning {
     reads=reads
 
 }
+
 
 
 

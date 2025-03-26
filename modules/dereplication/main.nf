@@ -1,3 +1,4 @@
+params.drep_s_ani= "0.95"
 
 process  write_genome_list {
 
@@ -23,7 +24,7 @@ process dereplicate_drep{
     script:
 
     """
-    dRep dereplicate drep_output/ -p ${task.cpus} -g ${genomes_list}  
+    dRep dereplicate drep_output/ -p ${task.cpus} -g ${genomes_list}  --S_ani ${params.drep_s_ani} 
 
     """
 }
