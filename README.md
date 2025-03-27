@@ -29,3 +29,17 @@ a roadmap is simply a group of Nextflow workflows chained together.
     nextflow run pipelines.nf --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
     ```
     Replace `<roadmap-id>` with the name of the pipeline you want to run and `<config_file>` with the path to your configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
+
+## Recomendations
+-----
+Most of the roadmaps require input data in the form of CSV files. Builing such tables can take some time. You can use a tool called bioplumber to make this task easy. Bioplumber is a python package that can be installed via pip:
+```bash
+pip install bioplumber
+```
+After installing, you can run the following command to enter the textual user interface for managing your files:
+```bash
+file-mgr
+```
+See how this is done as an example 
+
+![bioplumber](/imgs/bioplumber.gif)
