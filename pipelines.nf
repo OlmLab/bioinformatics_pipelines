@@ -5,7 +5,7 @@ params.binning_extension = "fa"
 params.add_fasta_prefix = true
 params.is_genome_db=null // default is null
 params.is_stb_db=null // default is null
-
+params.roadmap_5_pairmode="paired"
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -146,7 +146,39 @@ workflow {
             roadmap_3_2(sample_names, reads, fasta_file)
     
     }
+    else if (params.roadmap_id=="roadmap_5")
+    {
+        if (!params.input_fastas)
+        {
+            error "Please provide a genome for mapping reads."
+        }
+        if (!params.input_reads)
+        {
+            error "Please provide the reads information using the input_reads parameter."
+        }
+        table=tableToDict(file("${params.input_reads}"))
+        reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+        reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+        reads=reads_1.merge(reads_2)
+        sample_name=Channel.fromList(table["sample_name"])
+        samples_reads=sample_name.merge(reads)
+        genomes=Channel.fromPath(tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)})
+        if (params.roadmap_5_pairmode=="cross")
+        {
+            samples_reads.combine(genomes).set{inputs}
+        }
+        else if (params.roadmap_5_pairmode=="paired")
+        {
+            samples_reads.merge(genomes).set{inputs}
+        }
+        inputs.multiMap{v->
+            sn:v[0]
+            rd:[v[1],v[2]]
+            gn:v[3]
+        }.set{ins}
+        roadmap_5(ins.sn, ins.rd, ins.gn)
 
+    }
     else
         {
             error "Please provide a valid roadmap_id."
@@ -301,6 +333,26 @@ workflow roadmap_3_2 {
 
     emit:
     instrain_profiles=roadmap_2.out.instrain_profiles
+
+}
+
+workflow roadmap_5 {
+    //This roadmap is a minimal roadmap for mapping reads a set of reads to a set of genomes 
+    take:
+    sample_name
+    reads
+    genome
+    
+    main:
+    genome.multiMap{t->
+        gn:t
+        gn_baseName:t.baseName
+    }.set{gn}
+    index_bowtie2(gn.gn,gn.gn_baseName)
+    align_bowtie2(sample_name, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
+    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
+    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
+    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
 
 }
 

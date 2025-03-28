@@ -170,3 +170,28 @@ nextflow run pipelines.nf --roadmap_id "roadmap_3_2" --input_reads "<path-to-sam
 #### Relevant optional arguments
 --drep_s_ani : The average nucleotide identity threshold for dereplication. Default is 0.95
 
+
+-------
+## roadmap_5
+### Description
+This roadmap is designed only to map a set of reads to a set of reference genomes. It offers two modes of operation:
+1- **paired** : The reads are pared with genomes so any task would be aligning the reads to the corresponding genome.
+2- **cross** : Each sample is aligned to each fasta file in the input genomes.
+
+![roadmap_5](imgs/dag-roadmap_5.svg)
+
+### How to run
+To run this roadmap, you need to provide a CSV file containing the following columns:
+-   sample_name
+-   reads1
+-   reads2
+
+Also, you need to provide a CSV file containing the paths to the genomes you want to map the reads to. This file should contain one column:
+-   fasta_files (address to each fasta file)
+
+You can run the roadmap using the following command:
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
+```
+#### Relevant optional arguments
+--roadmap_5_pairmode : By default, the roadmap runs in pair mode. Otherwise, you should provide "cross" as the argument.
