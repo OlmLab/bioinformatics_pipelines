@@ -30,6 +30,13 @@ a roadmap is simply a group of Nextflow workflows chained together.
     ```
     Replace `<roadmap-id>` with the name of the pipeline you want to run and `<config_file>` with the path to your configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
 
+### Optional arguments
+
+- `-profile <profile>`: Specify the execution profile. Most imprtant ones are:
+    - `ignore_errors`: Continue execution even if some tasks fail. This is useful for testing and debugging and maybe in some cases when you want skip some of the problematic samples.
+- `-resume`: Resume the pipeline from the last completed task. This is useful if the pipeline was interrupted or if you want to re-run only a subset of tasks.
+
+
 ## Recomendations
 -----
 Most of the roadmaps require input data in the form of CSV files. Builing such tables can take some time. You can use a tool called bioplumber to make this task easy. Bioplumber is a python package that can be installed via pip:
