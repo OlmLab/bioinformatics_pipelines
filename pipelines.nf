@@ -1,11 +1,19 @@
-params.output_dir = "./output_is"
+params.output_dir = "./output"
 params.paired = false
 params.host_indexed = false
 params.binning_extension = "fa"
 params.add_fasta_prefix = true
 params.is_genome_db=null // default is null
 params.is_stb_db=null // default is null
+params.is_genes=null // default is null
 params.roadmap_5_pairmode="paired"
+params.metaphlan_b_distance="bray-curtis"
+params.metaphlan_diversity="beta"
+params.sylph_db = null
+params.sylph_db_link="http://faust.compbio.cs.cmu.edu/sylph-stuff/gtdb-r220-c200-dbv1.syldb"
+params.include_metaphlan=false
+params.metaphlan_db = null // default is null
+
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -143,7 +151,8 @@ workflow {
             reads=reads_1.merge(reads_2)
             sample_names=Channel.from(table["sample_name"])
             fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)}
-            roadmap_3_2(sample_names, reads, fasta_file)
+            force_genomes=Channel.fromPath(file(params.force_genomes))
+            roadmap_3_2(sample_names, reads, fasta_file, force_genomes)
     
     }
     else if (params.roadmap_id=="roadmap_5")
@@ -179,6 +188,19 @@ workflow {
         roadmap_5(ins.sn, ins.rd, ins.gn)
 
     }
+    else if (params.roadmap_id=="roadmap_6")
+    {
+        if (!params.input_reads)
+        {
+            error "Please provide the reads information using the input_reads parameter."
+        }
+        table=tableToDict(file("${params.input_reads}"))
+        reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+        reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+        reads=reads_1.merge(reads_2)
+        sample_name=Channel.fromList(table["sample_name"])
+        roadmap_6(sample_name, reads)
+    }
     else
         {
             error "Please provide a valid roadmap_id."
@@ -186,6 +208,7 @@ workflow {
         
         
     }
+
     
 
 // ###### Roadmaps ###### //
@@ -326,10 +349,12 @@ workflow roadmap_3_2 {
     sample_names
     reads
     fasta_file
+    external_genomes
     main:
     roadmap_3(fasta_file.collect())
     dereplicated_genomes=roadmap_3.out.dereplicated_genomes
-    roadmap_2(sample_names, reads, dereplicated_genomes)
+    dereplicate_drep=dereplicated_genomes.mix(external_genomes).flatten().unique().collect()
+    roadmap_2(sample_names, reads, dereplicate_drep)
 
     emit:
     instrain_profiles=roadmap_2.out.instrain_profiles
@@ -354,6 +379,61 @@ workflow roadmap_5 {
     get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
     get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
 
+}
+
+workflow roadmap_6{
+    // This roadmap analyzes QCed metagenomics reads and performs functional and taxonomic profiling using
+    // Reference-based methods.
+    take:
+    sample_name
+    reads
+    main:
+    if (params.sylph_db)
+    {
+        sylph_db=file(params.sylph_db)
+    }
+    else
+    {
+        sylph_db=download_sylph_db(params.sylph_db_link)
+    }
+    sample_name.multiMap{t->
+        sample_name_sylph:t
+        sample_name_metaphlan:t
+    }.set{sample_names}
+
+
+    reads.multiMap{t->
+        reads_sylph:t
+        reads_metaphlan:t
+    }.set{reads_all}
+
+    reads_all.reads_sylph.multiMap{t->
+    reads1_sylph: t[0]
+    reads2_sylph: t[1]
+    }.set{sylph_reads}
+   
+    estimate_abundance_sylph(sylph_reads.reads1_sylph.collect(), sylph_reads.reads2_sylph.collect(), sylph_db)
+    if (params.include_metaphlan)
+    {
+         if (params.metaphlan_db)
+         {
+             metaphlan_db=file(params.metaphlan_db)
+         }
+         else
+         {
+             metaphlan_db=download_metaphlan_db()
+         }
+         estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
+         merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
+         calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
+     }
+
+
+
+
+
+    
+    
 }
 
 // ###### WORKFLOWS ###### //
@@ -453,7 +533,14 @@ include {tableToDict;
 
 include {get_sequences_from_sra} from "./modules/download"
 
-include {estimate_abundance_coverm} from './modules/abundance'
+include {estimate_abundance_coverm;
+         estimate_abundance_metaphlan;
+            estimate_abundance_sylph;
+            merge_metaphlan_tables;
+            calculate_diversity_metaphlan;
+            download_sylph_db;
+            download_metaphlan_db;
+         } from './modules/abundance'
 
 include {compare_instrain_profiles;
          profile_with_instrain;

@@ -1,0 +1,13 @@
+FROM continuumio/anaconda3
+RUN conda config --add channels conda-forge
+RUN conda create -n roadmap6 python=3.10
+RUN conda run -n roadmap6 conda install -c bioconda metaphlan
+RUN conda run -n roadmap6 conda install  -c bioconda sylph
+RUN wget https://raw.githubusercontent.com/biobakery/MetaPhlAn/refs/heads/master/metaphlan/utils/calculate_diversity.R
+RUN chmod +x calculate_diversity.R
+RUN mv calculate_diversity.R /opt/conda/envs/roadmap6/bin/
+RUN echo "source activate roadmap6" >> ~/.bashrc
+RUN conda init bash
+ENV PATH="/opt/conda/envs/roadmap6/bin:$PATH"
+
+

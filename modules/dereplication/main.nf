@@ -24,7 +24,8 @@ process dereplicate_drep{
     script:
 
     """
-    dRep dereplicate drep_output/ -p ${task.cpus} -g ${genomes_list}  --S_ani ${params.drep_s_ani} 
+
+    dRep dereplicate drep_output/ -p ${task.cpus} -g ${genomes_list}  --S_ani ${params.drep_s_ani} --extra_weight_table ${params.drep_extra_weight_table}
 
     """
 }

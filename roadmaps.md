@@ -170,6 +170,12 @@ nextflow run pipelines.nf --roadmap_id "roadmap_3_2" --input_reads "<path-to-sam
 #### Relevant optional arguments
 --drep_s_ani : The average nucleotide identity threshold for dereplication. Default is 0.95
 
+--drep_extra_weight_table: path to a tab separated text file that assignes extra        weights to genomes. something like this:
+
+    ```
+    genome1  2
+    ```
+Usually this option is used to prioritize specific genomes.
 
 -------
 ## roadmap_5
@@ -195,3 +201,31 @@ nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-sampl
 ```
 #### Relevant optional arguments
 --roadmap_5_pairmode : By default, the roadmap runs in pair mode. Otherwise, you should provide "cross" as the argument.
+
+## roadmap_6
+### Description
+This roadmap is designed to perform metagenomics analysis using a reference-based approach. It starts with raw sequencing data and performs the following steps:
+1. **Estimate abundance with Sylph**: By default, GTDB is used as the reference database. 
+2. **Estimate abundance with Metaphlan (Disabled by default)**: If you want to use Metaphlan in addition to Sylph, you can enable it with the `--include_metaphlan` flag. This will run Metaphlan to estimate the abundance of taxa in the samples.
+
+***MORE_WILL_BE_ADDED***: The roadmap will functional analysis using reference-based methods in the future.
+
+![roadmap_6](imgs/dag-roadmap_6.svg)
+
+### How to run
+To run this roadmap, you need to provide a CSV file containing the following columns:
+-   sample_name
+-   reads1
+-   reads2
+
+You can run the roadmap using the following command:
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-samples.csv>" -c configs/local.config --include_metaphlan
+```
+#### Relevant optional arguments
+--sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used.
+--include_metaphlan : If you want to include Metaphlan in the analysis, you can enable it with this flag. By default, it is disabled.
+--sylph_db_link: If you want to download the Sylph database from a specific link, you can provide the link here. 
+--metaphlan_b_distance: type of distance metric to use for Metaphlan beta diversity analysis. 
+--metaphlan_diversity: type of diversity metric to use for Metaphlan diversity analysis. Default is beta diversity.
+--metaphlan_db: Path to the Metaphlan database. If this is not provided, it will be downloaded automatically.
