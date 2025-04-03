@@ -151,7 +151,15 @@ workflow {
             reads=reads_1.merge(reads_2)
             sample_names=Channel.from(table["sample_name"])
             fasta_file=tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)}
-            force_genomes=Channel.fromPath(file(params.force_genomes))
+            if (params.force_genomes)
+            {
+              force_genomes=Channel.fromPath(file(params.force_genomes))  
+            }
+            else
+            {
+              force_genomes=Channel.empty()
+            }
+            
             roadmap_3_2(sample_names, reads, fasta_file, force_genomes)
     
     }
