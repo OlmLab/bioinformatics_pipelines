@@ -95,8 +95,6 @@ process calculate_diversity_metaphlan{
 }
 
 process download_sylph_db{
-    input:
-    path sylph_db
     output:
     path "*.syldb", emit: sylph_db
     script:

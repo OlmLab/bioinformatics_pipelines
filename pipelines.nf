@@ -402,7 +402,7 @@ workflow roadmap_6{
     }
     else
     {
-        sylph_db=download_sylph_db(params.sylph_db_link)
+        sylph_db=download_sylph_db()
     }
     sample_name.multiMap{t->
         sample_name_sylph:t
