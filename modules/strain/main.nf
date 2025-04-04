@@ -3,7 +3,7 @@ process profile_with_instrain{
     * This process profiles the bins using InStrain.
     * It takes in the bins and reads, and outputs the profiling results.
     */
-    publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}"
+    publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}", mode: 'copy'
     input:
     path bamfile
     path fastafile 
@@ -22,7 +22,7 @@ process compare_instrain_profiles{
     * This process compares the InStrain profiles of the bins.
     * It takes in the profiles and outputs the comparison results.
     */
-    publishDir "${params.output_dir}/instrain/compare"
+    publishDir "${params.output_dir}/instrain/compare", mode: 'copy'
     input:
     path instrain_profiles 
     path stb_file
@@ -41,7 +41,7 @@ process make_stb_file_instrain{
     * This process creates a stb file for InStrain.
     * It takes in the comparison results and outputs the STB file.
     */
-    publishDir "${params.output_dir}/instrain/stb"
+    publishDir "${params.output_dir}/instrain/stb", mode: 'copy'
     input:
     path fastafiles
     val name

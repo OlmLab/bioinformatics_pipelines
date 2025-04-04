@@ -2,7 +2,7 @@ process concatenate_files {
     /*
     * This process takes in a list of files and concatenates them into a single file.
     */
-    publishDir params.output_dir
+    publishDir params.output_dir, mode: 'copy'
     input:
     path file_list
     val output_file

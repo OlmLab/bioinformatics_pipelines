@@ -1,5 +1,5 @@
 process find_genes_prodigal{
-    publishDir "${params.output_dir}/genes/prodigal"
+    publishDir "${params.output_dir}/genes/prodigal", mode: 'copy'
     input:
     path genome
     output:

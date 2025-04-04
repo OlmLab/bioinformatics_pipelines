@@ -2,7 +2,7 @@ params.drep_s_ani= "0.95"
 
 process  write_genome_list {
 
-    publishDir "${params.output_dir}/dereplication_drep"
+    publishDir "${params.output_dir}/dereplication_drep", mode: 'copy'
     input:
     path genomes
     output:
@@ -13,14 +13,14 @@ process  write_genome_list {
     """
 }
 process dereplicate_drep{
-    publishDir "${params.output_dir}/dereplication_drep"
+    publishDir "${params.output_dir}/dereplication_drep", mode: 'copy'
     input:
     path genomes
     path genomes_list
 
     output:
     path "drep_output/dereplicated_genomes/*", emit: dereplicated_genomes
-
+    path "drep_output/"
     script:
 
     """

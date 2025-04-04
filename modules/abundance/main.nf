@@ -73,6 +73,7 @@ process estimate_abundance_metaphlan{
 }
 
 process merge_metaphlan_tables {
+    publishDir "${params.output_dir}/metaphlan_abundance/", mode: 'copy'
     input:
     path abundance
     output:
@@ -84,6 +85,7 @@ process merge_metaphlan_tables {
 }
 
 process calculate_diversity_metaphlan{
+    publishDir "${params.output_dir}/metaphlan_diversity/", mode: 'copy'
     input:
     path table
     output:

@@ -6,7 +6,7 @@ process assemble_with_megahit{
     * @param read2: The second read file (optional, for paired-end reads).
     */
 
-    publishDir "${params.output_dir}/megahit/${sample_name}"
+    publishDir "${params.output_dir}/megahit/${sample_name}", mode: 'copy'
     input:
     val sample_name 
     path reads
