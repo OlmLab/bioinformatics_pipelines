@@ -68,7 +68,7 @@ process estimate_abundance_metaphlan{
     path "${sample_name}_metaphlan.tsv", emit: abundance
     script:
     """
-    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db} --input_type fastq -o ${sample_name}_metaphlan.tsv
+    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db . --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
     """
 }
 
