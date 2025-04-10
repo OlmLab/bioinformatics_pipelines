@@ -13,7 +13,9 @@ params.sylph_db = null
 params.sylph_db_link="http://faust.compbio.cs.cmu.edu/sylph-stuff/gtdb-r220-c200-dbv1.syldb"
 params.include_metaphlan=false
 params.metaphlan_db = null // default is null
-
+params.is_strain_pop_treshold=99
+params.is_strain_cos_treshold=99
+params.is_strain_con_treshold=99
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")

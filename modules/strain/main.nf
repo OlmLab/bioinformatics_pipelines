@@ -52,3 +52,40 @@ process make_stb_file_instrain{
     parse_stb.py --reverse -f ${fastafiles} -o ${name}.stb
     """
 }
+
+process compare_general_customized{
+    /*
+    * This process compares the InStrain profiles using a customized method.
+    * It takes in the profiles and outputs the comparison results.
+    */
+    publishDir "${params.output_dir}/instrain/compare_customized", mode: 'copy'
+    input:
+    path instrain_profiles 
+    path stb_file
+    output:
+    path "compare.json", emit: compare
+    
+    script:
+    """
+    compare_cosani.py compare --profile_1 ${instrain_profiles[0]} --profile_2 ${instrain_profiles[1]} --output compare.json --stb ${stb_file}
+
+    """
+}
+
+process get_customized_compared_comps{
+    /*
+    * This process gets the customized comparison components.
+    * It takes in the comparison results and outputs the components.
+    */
+    publishDir "${params.output_dir}/instrain/compare_customized", mode: 'copy'
+    input:
+    path comparison
+    output:
+    path "strain_share.json", emit: strainshare
+    
+    script:
+    """
+    compare_cosani.py stats --compare_profile ${comparison} --output_file strain_share.json --strain_pop_treshold ${params.is_strain_pop_treshold} --strain_cos_treshold ${params.is_strain_cos_treshold} --strain_con_treshold ${params.is_strain_con_treshold} 
+
+    """
+}
