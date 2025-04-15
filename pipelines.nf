@@ -97,8 +97,8 @@ workflow {
             {
                 table=tableToDict(file("${params.input_file}"))
                 get_sequences_from_sra(Channel.fromList(table["Run"]))
-                sample_names=get_sequences_from_sra.out.sra_ids.collect()
-                reads=get_sequences_from_sra.out.fastq_files.collect()
+                sample_names=get_sequences_from_sra.out.sra_ids
+                reads=get_sequences_from_sra.out.fastq_files
                 roadmap_1_3_2(sample_names, reads, file(params.host_genome))
             }
             if (params.input_type=="local")
@@ -210,6 +210,14 @@ workflow {
         reads=reads_1.merge(reads_2)
         sample_name=Channel.fromList(table["sample_name"])
         roadmap_6(sample_name, reads)
+    }
+    
+    else if (params.roadmap_id=="roadmap_dev")
+    {
+        profiles=Channel.fromPath(params.profiles,type: 'dir')
+        stb_file=file(params.stb_file)
+        test_customized_compared(profiles,stb_file)
+
     }
     else
         {
@@ -446,6 +454,7 @@ workflow roadmap_6{
     
 }
 
+
 // ###### WORKFLOWS ###### //
 
 workflow quality_control {
@@ -511,7 +520,16 @@ workflow binning {
 
 }
 
+workflow test_customized_compared{
+    take:
+    profiles
+    stb_file
+    main:
+    profiles.combine(profiles).map{t->t.sort()}.filter{t->t[0] != t[1]}.unique().set{profile_pairs}
+    compare_general_customized(profile_pairs,stb_file)
+    get_customized_compared_comps(compare_general_customized.out.compare)
 
+}
 
 
 
@@ -554,7 +572,10 @@ include {estimate_abundance_coverm;
 
 include {compare_instrain_profiles;
          profile_with_instrain;
-         make_stb_file_instrain} from './modules/strain'
+         make_stb_file_instrain;
+         compare_general_customized;
+         get_customized_compared_comps;
+         } from './modules/strain'
 
 include { dereplicate_drep;write_genome_list } from './modules/dereplication'
 
