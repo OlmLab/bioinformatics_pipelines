@@ -303,9 +303,8 @@ workflow roadmap_2 {
 
 
     index_bowtie2(genome_db, "genomes_db")
-    align_bowtie2(sample_names, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
-    profile_with_instrain(convert_sam_to_sorted_bam.out.sorted_bam,genome_db, stb, genes)
+    bowtie2_to_sorted_bam(sample_names, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
+    profile_with_instrain(bowtie2_to_sorted_bam.out.sorted_bam,genome_db, stb, genes)
     profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
     compare_instrain_profiles(all_profiles, stb)
     emit:
@@ -392,10 +391,9 @@ workflow roadmap_5 {
         gn_baseName:t.baseName
     }.set{gn}
     index_bowtie2(gn.gn,gn.gn_baseName)
-    align_bowtie2(sample_name, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam, align_bowtie2.out.sample_name, align_bowtie2.out.paired)
-    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
-    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
+    bowtie2_to_sorted_bam(sample_name, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
+    get_mapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
+    get_unmapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
 
 }
 
@@ -470,15 +468,14 @@ workflow quality_control {
     main:
     read_qc_fastp(sample_name, reads)
     index_bowtie2(host_genome,host_genome.baseName)
-    align_bowtie2(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
-    convert_sam_to_sorted_bam(align_bowtie2.out.bowtie2_sam,align_bowtie2.out.sample_name,align_bowtie2.out.paired)
-    get_unmapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
-    get_mapped_reads(convert_sam_to_sorted_bam.out.sorted_bam,convert_sam_to_sorted_bam.out.paired,convert_sam_to_sorted_bam.out.sample_name)
+    bowtie2_to_sorted_bam(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
+    get_unmapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
+    get_mapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
 
     emit:
         qc_reads=get_unmapped_reads.out.unmapped_reads
         sample_name=get_unmapped_reads.out.sample_name
-        paired=convert_sam_to_sorted_bam.out.paired
+        paired=bowtie2_to_sorted_bam.out.paired
 }
 
 workflow assembly {
@@ -543,10 +540,10 @@ include {
     align_bowtie2;
     convert_sam_to_bam;
     sort_bam;
-    convert_sam_to_sorted_bam;
     get_unmapped_reads;
     get_mapped_reads;
-    map_reads_fasta_pairs
+    map_reads_fasta_pairs;
+    bowtie2_to_sorted_bam
         } from "./modules/alignment"
 
 include {assemble_with_megahit} from "./modules/assembly"
