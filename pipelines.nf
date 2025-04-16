@@ -388,9 +388,9 @@ workflow roadmap_5 {
     paired
     
     main:
-    map_reads_fasta_pairs(sample_name, reads, genome)
-    get_mapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
-    get_unmapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
+    map_reads_fasta_pairs(sample_name, reads, genome,paired)
+    get_mapped_reads(map_reads_fasta_pairs.out.sorted_bam,map_reads_fasta_pairs.out.paired,map_reads_fasta_pairs.out.sample_name)
+    get_unmapped_reads(map_reads_fasta_pairs.out.sorted_bam,map_reads_fasta_pairs.out.paired,map_reads_fasta_pairs.out.sample_name)
 
 }
 
