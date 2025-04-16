@@ -238,10 +238,7 @@ process map_reads_fasta_pairs{
         -x ${reference_fasta} \\
         -1 ${reads[0]} \\
         -2 ${reads[1]} \\
-        -S ${sample_name}_bowtie2.sam \\
-        --threads ${task.cpus} \\
-    
-    samtools view -bS ${sample_name}_bowtie2.sam | samtools sort -o ${sample_name}.sorted.bam
+        --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}.sorted.bam
     """
 
 

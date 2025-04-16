@@ -194,8 +194,9 @@ workflow {
             sn:v[0]
             rd:[v[1],v[2]]
             gn:v[3]
+            tr:true
         }.set{ins}
-        roadmap_5(ins.sn, ins.rd, ins.gn)
+        roadmap_5(ins.sn, ins.rd, ins.gn,ins.tr)
 
     }
     else if (params.roadmap_id=="roadmap_6")
@@ -384,14 +385,10 @@ workflow roadmap_5 {
     sample_name
     reads
     genome
+    paired
     
     main:
-    genome.multiMap{t->
-        gn:t
-        gn_baseName:t.baseName
-    }.set{gn}
-    index_bowtie2(gn.gn,gn.gn_baseName)
-    bowtie2_to_sorted_bam(sample_name, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
+    map_reads_fasta_pairs(sample_name, reads, genome)
     get_mapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
     get_unmapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
 
