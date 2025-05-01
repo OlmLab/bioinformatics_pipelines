@@ -8,6 +8,7 @@ RUN chmod +x calculate_diversity.R
 RUN mv calculate_diversity.R /opt/conda/envs/roadmap6/bin/
 RUN conda run -n roadmap6 pip install humann
 RUN conda run -n roadmap6 conda install -c bioconda kraken2
+RUN conda run -n roadmap6 conda install -c bioconda bracken
 RUN echo "source activate roadmap6" >> ~/.bashrc
 RUN conda init bash
 ENV PATH="/opt/conda/envs/roadmap6/bin:$PATH"
