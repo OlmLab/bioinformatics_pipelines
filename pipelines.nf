@@ -54,14 +54,14 @@ workflow {
                 reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
                 inputs=reads_1.merge(reads_2)
                 sample_names=Channel.from(table["sample_name"])
-                params.roadmap2_input_type="reads"
+                params.roadmap_2_input_type="reads"
             }
             else if (params.input_bams)
             {
                 table=tableToDict(file("${params.input_bams}"))
                 inputs=Channel.fromPath(table["bam_files"].collect{t->file(t)})
                 sample_names=Channel.from(table["sample_name"])
-                params.roadmap2_input_type="bams"
+                params.roadmap_2_input_type="bams"
             }
             else
             {
