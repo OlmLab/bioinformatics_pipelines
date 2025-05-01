@@ -2,7 +2,7 @@ params.output_dir = "./output"
 params.paired = false
 params.host_indexed = false
 params.binning_extension = "fa"
-params.add_fasta_prefix = true
+params.add_fasta_prefix = false
 params.is_genome_db=null // default is null
 params.is_stb_db=null // default is null
 params.is_genes=null // default is null
@@ -16,6 +16,8 @@ params.metaphlan_db = null // default is null
 params.is_strain_pop_treshold=99
 params.is_strain_cos_treshold=99
 params.is_strain_con_treshold=99
+
+
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -45,11 +47,28 @@ workflow {
         
         else if (params.roadmap_id=="roadmap_2")
         {
-            table=tableToDict(file("${params.input_reads}"))
-            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
-            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
-            reads=reads_1.merge(reads_2)
-            sample_names=Channel.from(table["sample_name"])
+            if (params.input_reads)
+            {
+                table=tableToDict(file("${params.input_reads}"))
+                reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+                reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+                inputs=reads_1.merge(reads_2)
+                sample_names=Channel.from(table["sample_name"])
+                params.roadmap2_input_type="reads"
+            }
+            else if (params.input_bams)
+            {
+                table=tableToDict(file("${params.input_bams}"))
+                inputs=Channel.fromPath(table["bam_files"].collect{t->file(t)})
+                sample_names=Channel.from(table["sample_name"])
+                params.roadmap2_input_type="bams"
+            }
+            else
+            {
+                error "Please provide the reads or bam files information using the input_reads or input_bam parameter."
+            }
+            
+            
             
             if (params.input_fastas)
             {
@@ -73,7 +92,7 @@ workflow {
                     fasta_file=file(params.is_genome_db)
                 }
             }
-            roadmap_2(sample_names, reads, fasta_file)
+            roadmap_2(sample_names, inputs, fasta_file)
         }
 
 
@@ -93,6 +112,7 @@ workflow {
             {
                 error "Please provide a host genome for decontamination in the roadmap_1 workflow."
             }
+            params.roadmap_2_input_type="reads"
             if (params.input_type=="sra")
             {
                 table=tableToDict(file("${params.input_file}"))
@@ -161,7 +181,8 @@ workflow {
             {
               force_genomes=Channel.empty()
             }
-            
+            params.roadmap2_input_type="reads"
+
             roadmap_3_2(sample_names, reads, fasta_file, force_genomes)
     
     }
@@ -259,7 +280,7 @@ workflow roadmap_2 {
 
     take:
     sample_names
-    reads
+    inputs
     fasta_file
     main:
     if (!params.is_genome_db)
@@ -302,10 +323,17 @@ workflow roadmap_2 {
         genes=file(params.is_genes)
     }
 
-
-    index_bowtie2(genome_db, "genomes_db")
-    bowtie2_to_sorted_bam(sample_names, index_bowtie2.out.reference_genome, reads, index_bowtie2.out.bowtie2_index_files)
-    profile_with_instrain(bowtie2_to_sorted_bam.out.sorted_bam,genome_db, stb, genes)
+    if (params.roadmap_2_input_type=="reads")
+    {
+        index_bowtie2(genome_db, "genomes_db")
+        bowtie2_to_sorted_bam(sample_names, index_bowtie2.out.reference_genome, inputs, index_bowtie2.out.bowtie2_index_files)
+        sorted_bam=bowtie2_to_sorted_bam.out.sorted_bam
+    }
+    else if (params.roadmap_2_input_type=="bams")
+    {
+        sorted_bam=inputs
+    }
+    profile_with_instrain(sorted_bam,genome_db, stb, genes)
     profile_with_instrain.out.instrain_profiles.collect().set{all_profiles}
     compare_instrain_profiles(all_profiles, stb)
     emit:

@@ -51,7 +51,7 @@ This roadmap is designed to perform strain-level analysis using inStrain. You ca
 ### How to run
 Currently there are two ways to run this roadmap:
 
-1- You have prepared your concatenated genomes database and you have a STB file ready.
+1- You have prepared your concatenated genomes database and you have a STB file ready. 
 
 -   **samples.csv**: This file should contain the following columns:
     -   sample_name
@@ -63,7 +63,7 @@ Currently there are two ways to run this roadmap:
 
 If you want to use the first option, you use this roadmap like this:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_2" --host_genome  --input_reads "<path-to-genomes.csv"  -c configs/local.config --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file>
+nextflow run pipelines.nf --roadmap_id "roadmap_2" --host_genome  --input_reads "<path-to-samples.csv"  -c configs/local.config --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file>
 ```
 
 2- You have a list of samples and genomes and you want to make the genome database and the stb files using the pipeline.
@@ -82,6 +82,17 @@ If you want to choose the second option, you can run the roadmap using the follo
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
 ```
+
+In any of the previous cases, you can alternatively provide bam files instead of the reads. In this case you still provide the samples.csv file with the following columns:
+-   sample_name
+-   bam_files
+
+You can run the roadmap using the following command (As an example when youhave the stb file and the genome database):
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_2" --host_genome  --input_bams "<path-to-samples.csv"  -c configs/local.config --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file>
+
+```
+
 #### Optional arguments
 -   **--is_genes**: If you already have the genes of your input fasta(s) you can provide the path to the genes file. Otherwise, the genes will be extracted from the input fasta(s) using prodigal.
 
