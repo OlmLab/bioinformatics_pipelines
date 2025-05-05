@@ -42,21 +42,4 @@ process get_sequences_from_sra {
     """
 }
 
-process download_humann_database {
-    /*
-    * This process downloads the HUMAnN database from a given URL and extracts it.
-    * @param url: The URL of the HUMAnN database to download.
-    */
-    
-    publishDir "${params.output_dir}/humann_databases"
-    output:
-    path "chocoplan", emit: chocophlan
-    path "uniref90", emit: uniref90
 
-    
-    script:
-    """
-    humann_databases --download chocophlan full ./chocophlan
-    humann_databases --download uniref uniref90_diamond ./uniref90
-    """
-}

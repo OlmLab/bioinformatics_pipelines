@@ -16,8 +16,12 @@ params.metaphlan_db = null // default is null
 params.is_strain_pop_treshold=99
 params.is_strain_cos_treshold=99
 params.is_strain_con_treshold=99
-
-
+params.kraken2_db = null // default is null
+params.kraken2_kmer_size = 100
+params.kraken2_classification_level="S"
+params.kraken2_abundance_threshold=10
+params.include_kraken2=false
+params.kraken2_db_link="https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20250402.tar.gz"
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -467,7 +471,21 @@ workflow roadmap_6{
          estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
          merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
          calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
-     }
+    }
+    if (params.include_kraken2)
+    {
+        if (params.kraken2_db)
+        {
+            kraken2_db=file(params.kraken2_db)
+        }
+        else
+        {
+            kraken2_db=download_kraken2_db(params.kraken2_db_link)
+        }
+        classify_kraken2(sample_name,reads)
+        estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report)
+    }
+    
 
 
 
@@ -590,6 +608,9 @@ include {estimate_abundance_coverm;
             calculate_diversity_metaphlan;
             download_sylph_db;
             download_metaphlan_db;
+            download_kraken2_db;
+            classify_kraken2;
+            estimate_abundance_bracken;
          } from './modules/abundance'
 
 include {compare_instrain_profiles;
