@@ -486,13 +486,23 @@ workflow roadmap_6{
         estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report)
     }
     
-
-
-
-
-
-    
-    
+    if (params.humann_uniref90)
+    {
+        humann_uniref90=file(params.humann_uniref90)
+    }
+    else
+    {
+        humann_uniref90=download_humann_uniref90().out.humann_uniref90
+    }
+    if (params.humann_chocophlan)
+    {
+        humann_chocophlan=file(params.humann_chocophlan)
+    }
+    else
+    {
+        humann_chocophlan=download_humann_chocophlan().out.humann_chocophlan
+    }
+    profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90)    
 }
 
 
@@ -623,3 +633,9 @@ include {compare_instrain_profiles;
 include { dereplicate_drep;write_genome_list } from './modules/dereplication'
 
 include {find_genes_prodigal} from './modules/genes'
+
+include {
+    download_humann_chocophlan;
+    download_humann_uniref90;
+    profile_humann;
+} from './modules/metabolism'
