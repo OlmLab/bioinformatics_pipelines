@@ -12,7 +12,7 @@ This repository contains Nextflow pipelines for computational research in the Ol
 
 1. **Install Nextflow**: Make sure you have Nextflow installed on your system. The recommended way to install Nextflow is via conda:
     ```bash
-    moduel load anaconda
+    module load anaconda
     conda create -n nf-pipeline -c bioconda nextflow
     conda activate nf-pipeline
     ```
