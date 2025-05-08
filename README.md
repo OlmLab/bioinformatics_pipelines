@@ -30,6 +30,12 @@ a roadmap is simply a group of Nextflow workflows chained together.
     ```
     Replace `<roadmap-id>` with the name of the pipeline you want to run and `<config_file>` with the path to your configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
 
+or (RECOMENDED) you can skip step 2, and run the pipeline directly by using the following command:
+
+```bash
+nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
+```
+
 ### Optional arguments
 
 - `-profile <profile>`: Specify the execution profile. Most imprtant ones are:
