@@ -35,6 +35,7 @@ or (RECOMENDED) you can skip step 2, and run the pipeline directly by using the 
 ```bash
 nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
 ```
+In this case, the configs will be stored in $HOME/.nextflow/assets/OlmLab/bioinformatics_pipelines/config/
 
 ### Optional arguments
 

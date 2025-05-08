@@ -226,16 +226,27 @@ workflow {
     }
     else if (params.roadmap_id=="roadmap_6")
     {
-        if (!params.input_reads)
+        if (params.input_type=="sra")
         {
-            error "Please provide the reads information using the input_reads parameter."
+            table=tableToDict(file("${params.input_file}"))
+            get_sequences_from_sra(Channel.fromList(table["Run"]))
+            sample_names=get_sequences_from_sra.out.sra_ids
+            reads=get_sequences_from_sra.out.fastq_files
+            roadmap_6(sample_names, reads)
         }
-        table=tableToDict(file("${params.input_reads}"))
-        reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
-        reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
-        reads=reads_1.merge(reads_2)
-        sample_name=Channel.fromList(table["sample_name"])
-        roadmap_6(sample_name, reads)
+        else if (params.input_type=="local")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_name=Channel.fromList(table["sample_name"])
+            roadmap_6(sample_name, reads)
+        }
+        else
+        {
+            error "Please provide the reads information using the file parameter."
+        }
     }
     
     else if (params.roadmap_id=="roadmap_dev")
