@@ -6,12 +6,12 @@ process download_humann_chocophlan {
     
     publishDir "${params.output_dir}/humann_databases"
     output:
-    path "chocoplan", emit: humann_chocophlan
+    path "chocophlan", emit: humann_chocophlan
 
     
     script:
     """
-    humann_databases --download chocophlan full ./chocophlan
+    humann_databases --download chocophlan full ./chocophlan --update-config no
     """
 }
 
@@ -28,7 +28,7 @@ process download_humann_uniref90 {
     
     script:
     """
-    humann_databases --download uniref uniref90_diamond ./uniref90
+    humann_databases --download uniref uniref90_diamond ./uniref90 --update-config no
     """
 }
 
@@ -50,7 +50,7 @@ process profile_humann {
     
     script:
     """
-    cat ${reads} > ${sample_name}.fastq
+    cat ${reads} > ${sample_name}.fastq.gz
     humann --input ${sample_name}.fastq --output .  --threads ${task.cpus} --protein-database ${params.humann_uniref90} --nucleotide-database ${params.humann_chocophlan} --output-format tsv
     rm ${sample_name}.fastq
     """

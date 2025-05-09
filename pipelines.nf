@@ -503,7 +503,8 @@ workflow roadmap_6{
     }
     else
     {
-        humann_uniref90=download_humann_uniref90().out.humann_uniref90
+	download_humann_uniref90()
+        humann_uniref90=download_humann_uniref90.out.humann_uniref90
     }
     if (params.humann_chocophlan)
     {
@@ -511,7 +512,8 @@ workflow roadmap_6{
     }
     else
     {
-        humann_chocophlan=download_humann_chocophlan().out.humann_chocophlan
+        download_humann_chocophlan()
+	humann_chocophlan=download_humann_chocophlan.out.humann_chocophlan
     }
     profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90)    
 }
