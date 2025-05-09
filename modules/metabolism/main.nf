@@ -6,7 +6,7 @@ process download_humann_chocophlan {
     
     publishDir "${params.output_dir}/humann_databases"
     output:
-    path "chocophlan", emit: humann_chocophlan
+    path "chocophlan/chocophlan", emit: humann_chocophlan
 
     
     script:
@@ -23,7 +23,7 @@ process download_humann_uniref90 {
     
     publishDir "${params.output_dir}/humann_databases"
     output:
-    path "uniref90", emit: humann_uniref90
+    path "uniref90/uniref", emit: humann_uniref90
 
     
     script:
@@ -44,14 +44,15 @@ process profile_humann {
     val sample_name
     path reads
     path humann_chocophlan
-    path humann_uniref90
+    path humann_uniref90 
+    path metaphlan_db
     output:
     path "*.tsv", emit: humann_profile
     
     script:
     """
     cat ${reads} > ${sample_name}.fastq.gz
-    humann --input ${sample_name}.fastq --output .  --threads ${task.cpus} --protein-database ${params.humann_uniref90} --nucleotide-database ${params.humann_chocophlan} --output-format tsv
-    rm ${sample_name}.fastq
+    humann --input ${sample_name}.fastq.gz --output .  --threads ${task.cpus} --protein-database ${humann_uniref90} --nucleotide-database ${humann_chocophlan} --output-format tsv --metaphlan-options "--bowtie2db ."
+    rm ${sample_name}.fastq.gz
     """
 }

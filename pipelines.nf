@@ -469,20 +469,20 @@ workflow roadmap_6{
     }.set{sylph_reads}
    
     estimate_abundance_sylph(sylph_reads.reads1_sylph.collect(), sylph_reads.reads2_sylph.collect(), sylph_db)
-    if (params.include_metaphlan)
-    {
-         if (params.metaphlan_db)
-         {
-             metaphlan_db=file(params.metaphlan_db)
-         }
-         else
-         {
-             metaphlan_db=download_metaphlan_db()
-         }
-         estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
-         merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
-         calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
-    }
+   
+    
+    if (params.metaphlan_db)
+      {
+       metaphlan_db=file(params.metaphlan_db)
+      }
+      else
+      {
+      metaphlan_db=download_metaphlan_db()
+      }
+      estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
+      merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
+      calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
+    
     if (params.include_kraken2)
     {
         if (params.kraken2_db)
@@ -515,7 +515,7 @@ workflow roadmap_6{
         download_humann_chocophlan()
 	humann_chocophlan=download_humann_chocophlan.out.humann_chocophlan
     }
-    profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90)    
+    profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90, metaphlan_db)    
 }
 
 
