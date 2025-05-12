@@ -9,8 +9,8 @@ RUN wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/
     tar -xzf sratoolkit.tar.gz && \
     rm sratoolkit.tar.gz
 ENV PATH="/sratoolkit.3.2.0-ubuntu64/bin:${PATH}"
-RUN conda install -c conda-forge -c bioconda gtdbtk=2.4.0
-RUN conda install coverm
+# RUN conda install -c conda-forge -c bioconda gtdbtk=2.4.0
+# RUN conda install coverm
 
 
 

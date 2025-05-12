@@ -128,7 +128,9 @@ This roadmap has identical input to roadmap_1. You can either provide a CSV file
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-host-genome>" --input_type "local" --input_file <path-to-csv-files> -c configs/local.config
 ```
+
 **NOTE** You should change the config file according to your environment. The input_file should be a CSV file containing the sample names and reads or a CSV file containing the accession ids of the samples. The host genome is also required.
+
 ----------------
 ## roadmap_4
 ### Description
@@ -220,9 +222,10 @@ nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-sampl
 ### Description
 This roadmap is designed to perform metagenomics analysis using a reference-based approach. It starts with raw sequencing data and performs the following steps:
 1. **Estimate abundance with Sylph**: By default, GTDB is used as the reference database. 
-2. **Estimate abundance with Metaphlan (Disabled by default)**: If you want to use Metaphlan in addition to Sylph, you can enable it with the `--include_metaphlan` flag. This will run Metaphlan to estimate the abundance of taxa in the samples.
+2. **Estimate abundance with Metaphlan**: This will run Metaphlan to estimate the abundance of taxa in the samples.
+3. **Classify reads and estimate abundance with KRAKEN2 and BRACKEN**: This will run KRAKEN2 to classify the reads and estimate the abundance of taxa in the samples.
+4. **Estimate functional profile of the samples with HUMAnN**: This will run HUMAnN3 to estimate the functional profile of the samples.
 
-***MORE_WILL_BE_ADDED***: The roadmap will functional analysis using reference-based methods in the future.
 
 ![roadmap_6](imgs/dag-roadmap_6.svg)
 
@@ -238,8 +241,33 @@ nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-sampl
 ```
 #### Relevant optional arguments
 --sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used.
---include_metaphlan : If you want to include Metaphlan in the analysis, you can enable it with this flag. By default, it is disabled.
 --sylph_db_link: If you want to download the Sylph database from a specific link, you can provide the link here. 
 --metaphlan_b_distance: type of distance metric to use for Metaphlan beta diversity analysis. 
 --metaphlan_diversity: type of diversity metric to use for Metaphlan diversity analysis. Default is beta diversity.
 --metaphlan_db: Path to the Metaphlan database. If this is not provided, it will be downloaded automatically.
+
+
+
+## roadmap_7
+### Description
+This roadmap is designed to do both taxonomic and functional annotation of a set of genomes. It starts with a set of genomes and performs the following steps:
+1. **Taxonomic annotation with GTDB**: The genomes are annotated using GTDB.
+2. **Functional annotation**: UNDER CUSTRUCTION
+
+![roadmap_7](imgs/dag-roadmap_7.svg)
+### How to run
+To run this roadmap, you need to provide either path to the genomes or a CSV file containing the paths to the genomes you want to annotate. This file should contain one column:
+-   fasta_files (address to each fasta file)
+You can run the roadmap using the following commands:
+
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_7" --bins_dir "<path-to-genomes>" -c configs/local.config 
+```
+or 
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-genomes-table.csv>" -c configs/local.config 
+```
+
+#### Relevant optional arguments
+--gtdb_db : Path to the GTDB database. If this is not provided, the GTDB database will be downloaded.
+

@@ -248,6 +248,36 @@ workflow {
             error "Please provide the reads information using the file parameter."
         }
     }
+    else if (params.roadmap_id=="roadmap_7")
+    {
+        if (params.bins_dir)
+        {
+            bins=Channel.fromPath(params.bins_dir,type: 'file')
+        }
+        else if(params.input_bins_table)
+        {
+            table=tableToDict(file("${params.input_bins_table}"))
+            bins=Channel.fromPath(table["fasta_files"].collect{t->file(t)})
+
+        }
+        else
+        {
+            error "Please provide the bins information using either the bins_dir or input_bins_table parameter."
+        }
+        roadmap_7(bins.collect())
+        
+    }
+    else if (params.roadmap_id=="test_customized_compared")
+    {
+        if (!params.profiles)
+        {
+            error "Please provide the profiles information using the profiles parameter."
+        }
+        if (!params.stb_file)
+        {
+            error "Please provide the stb_file information using the stb_file parameter."
+        }
+    }
     
     else if (params.roadmap_id=="roadmap_dev")
     {
@@ -483,19 +513,19 @@ workflow roadmap_6{
       merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
       calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
     
-    if (params.include_kraken2)
+   
+    
+    if (params.kraken2_db)
     {
-        if (params.kraken2_db)
-        {
-            kraken2_db=file(params.kraken2_db)
-        }
-        else
-        {
-            kraken2_db=download_kraken2_db(params.kraken2_db_link)
-        }
-        classify_kraken2(sample_name,reads)
-        estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report)
+        kraken2_db=file(params.kraken2_db)
     }
+    else
+    {
+        kraken2_db=download_kraken2_db(params.kraken2_db_link)
+    }
+    classify_kraken2(sample_name,reads, kraken2_db)
+    estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report,kraken2_db)
+    
     
     if (params.humann_uniref90)
     {
@@ -518,7 +548,23 @@ workflow roadmap_6{
     profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90, metaphlan_db)    
 }
 
+workflow roadmap_7{
+    // This roadmap takes a set of bins and performs taxonomic assignment using GTDB-Tk.//
+    take:
+    bins
+    main:
+    if (params.gtdbtk_db)
+    {
+        gtdbtk_db=file(params.gtdbtk_db)
+    }
+    else
+    {
+        gtdbtk_db=download_gtdbtk_db()
+    }
+    assign_taxonomy_gtdb_tk(bins, gtdbtk_db)
+    
 
+}
 // ###### WORKFLOWS ###### //
 
 workflow quality_control {
@@ -652,3 +698,7 @@ include {
     download_humann_uniref90;
     profile_humann;
 } from './modules/metabolism'
+
+include {assign_taxonomy_gtdb_tk;
+        download_gtdbtk_db;
+        } from './modules/annotation'

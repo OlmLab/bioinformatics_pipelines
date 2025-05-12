@@ -21,7 +21,7 @@ This repository contains Nextflow pipelines for computational research in the Ol
     cd /path/to/your/directory
     git clone https://github.com/ParsaGhadermazi/nf-metgenomics-piplines.git
     ``` 
-3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap]() markdown file.
+3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap](roadmaps.md) markdown file.
 a roadmap is simply a group of Nextflow workflows chained together. 
 
 4. **Run the pipeline**: To run a pipeline, navigate to the directory containing the pipeline and execute the following command:
