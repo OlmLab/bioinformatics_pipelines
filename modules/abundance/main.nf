@@ -159,17 +159,17 @@ process download_metaphlan_db {
 
 
 process download_kraken2_db {
-    publishDir "${params.output_dir}/kraken2_db"
+    publishDir "${params.output_dir}"
     input:
     val kraken2_db_link
     output:
-    path "kraken2_db/*", emit: kraken2_db
+    path "kraken2_db", emit: kraken2_db
     script:
     """
     mkdir kraken2_db
     wget -P kraken2_db ${kraken2_db_link}
-    cd kraken2_db
-    tar -xvf ${params.kraken2_db_link}
+    tar -xvf $(ls kraken2_db/*.tar.gz) -C kraken2_db
+    rm kraken2_db/k2_standard_*.tar.gz
     """
 }
 
