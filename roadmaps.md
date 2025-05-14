@@ -240,8 +240,18 @@ You can run the roadmap using the following command:
 nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-samples.csv>" -c configs/local.config --include_metaphlan
 ```
 #### Relevant optional arguments
---sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used.
+--sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used. NOTE: you should directly provide the path to the Sylph database **file** ending in syldb.
+
 --sylph_db_link: If you want to download the Sylph database from a specific link, you can provide the link here. 
+
+--metaphlan_db path to the Metaphlan database. If this is not provided, the default Metaphlan database will be downloaded. NOTE: you should provide the **directory** containing the Metaphlan database ending in metaphlan
+
+--kraken2_db path to the KRAKEN2 database. If this is not provided, the standard KRAKEN2 database will be downloaded. NOTE: Similar to the Metaphlan database, you should provide the **directory** containing the KRAKEN2 database ending in kraken2
+
+--humann_chocophlan path to the Chocophlan database. If this is not provided, the default Chocophlan database will be downloaded. NOTE: Similar to the Metaphlan database, you should provide the **directory** containing the Chocophlan database ending in chocophlan
+
+--humann_uniref path to the Uniref database. If this is not provided, the default Uniref database will be downloaded. NOTE: Similar to the Metaphlan database, you should provide the **directory** containing the Uniref database ending in uniref
+
 --metaphlan_b_distance: type of distance metric to use for Metaphlan beta diversity analysis. 
 --metaphlan_diversity: type of diversity metric to use for Metaphlan diversity analysis. Default is beta diversity.
 --metaphlan_db: Path to the Metaphlan database. If this is not provided, it will be downloaded automatically.
