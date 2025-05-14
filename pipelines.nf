@@ -22,6 +22,8 @@ params.kraken2_classification_level="S"
 params.kraken2_abundance_threshold=10
 params.include_kraken2=false
 params.kraken2_db_link="https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20250402.tar.gz"
+params.humann_uniref90 = null // default is null
+params.humann_chocophlan = null // default is null
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")

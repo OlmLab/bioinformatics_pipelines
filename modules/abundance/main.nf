@@ -109,12 +109,12 @@ process classify_kraken2{
     script:
     if (reads.size() == 2) {
     """
-    k2 classify --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output kraken2_output.txt --paired ${reads[0]} ${reads[1]} 
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output kraken2_output.txt --paired ${reads[0]} ${reads[1]} 
     """
     }
     else{
     """
-    k2 classify --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --unclassified-out unclassified_reads.fastq --output kraken2_output.txt ${reads[0]}
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --unclassified-out unclassified_reads.fastq --output kraken2_output.txt ${reads[0]}
     """
     }   
 }
@@ -127,14 +127,13 @@ process estimate_abundance_bracken{
     input:
     val sample_name
     path kraken_report
-    path kraken2_db
-
+    path kraken_db
     output:
     path "${sample_name}.bracken", emit: bracken
 
     script:
     """
-    bracken -d ${kraken2_db} -i ${kraken_report} -o ${sample_name}.bracken -r ${params.kraken2_kmer_size} -l ${params.kraken2_classification_level} -t ${params.kraken2_abundance_threshold}
+    bracken -d ${kraken_db} -i ${kraken_report} -o ${sample_name}.bracken -r ${params.kraken2_kmer_size} -l ${params.kraken2_classification_level} -t ${params.kraken2_abundance_threshold}
     """
 }
 
@@ -158,7 +157,6 @@ process download_metaphlan_db {
 }
 
 
-
 process download_kraken2_db {
     publishDir "${params.output_dir}"
     input:
@@ -173,9 +171,3 @@ process download_kraken2_db {
     rm kraken2_db/k2_standard_*.tar.gz
     """
 }
-
-
-
-
-
-
