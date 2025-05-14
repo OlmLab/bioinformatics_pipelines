@@ -52,7 +52,7 @@ process profile_humann {
     script:
     """
     cat ${reads} > ${sample_name}.fastq.gz
-    humann --input ${sample_name}.fastq.gz --output .  --threads ${task.cpus} --protein-database ${humann_uniref90} --nucleotide-database ${humann_chocophlan} --output-format tsv --metaphlan-options "--bowtie2db ."
+    humann --input ${sample_name}.fastq.gz --output .  --threads ${task.cpus} --protein-database ${humann_uniref90} --nucleotide-database ${humann_chocophlan} --output-format tsv --metaphlan-options "--bowtie2db ${metaphlan_db.name}"
     rm ${sample_name}.fastq.gz
     """
 }

@@ -68,7 +68,7 @@ process estimate_abundance_metaphlan{
     path "${sample_name}_metaphlan.tsv", emit: abundance
     script:
     """
-    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db . --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
+    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db.name} --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
     """
 }
 
@@ -148,10 +148,10 @@ process download_sylph_db{
 }
 process download_metaphlan_db {
     output:
-    path "*", emit: metaphlan_db
+    path "mpa", emit: metaphlan_db
     script:
     """
-    metaphlan --install --bowtie2db .
+    metaphlan --install --bowtie2db mpa
     
     """
 }
