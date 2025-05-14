@@ -47,10 +47,10 @@ process estimate_abundance_sylph{
     path sylph_db
 
     output:
-    path "sylph_abundance.tsv", emit: abundance
+    path "${reads_1.simpleName}_sylph_abundance.tsv", emit: abundance
     script:
     """
-    sylph profile ${sylph_db} -1 ${reads_1} -2 ${reads_2} -t ${task.cpus} > sylph_abundance.tsv
+    sylph profile ${sylph_db} -1 ${reads_1} -2 ${reads_2} -t ${task.cpus} > ${reads_1.simpleName}_sylph_abundance.tsv
     """
 }
 
