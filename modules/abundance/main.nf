@@ -32,7 +32,7 @@ process  estimate_abundance_coverm{
          --genome-fasta-extension ${extension} \\
         --threads ${task.cpus} \\
         --output-file ${sample_name}_relative_abundance.tsv \\
-\    """
+    """
     }
 }
 
@@ -41,6 +41,7 @@ process estimate_abundance_sylph{
     * This process estimates the abundance of bins using Sylph. It takse the reads and prepared database.
     */
     publishDir "${params.output_dir}/sylph_abundance/", mode: 'copy'
+    
     input:
     path reads_1
     path reads_2
