@@ -179,3 +179,6 @@ nextflow
 .DS_Store
 sratoolkit.3.2.0-mac-x86_64
 output
+
+# Nextflow testing
+.nf-test/
