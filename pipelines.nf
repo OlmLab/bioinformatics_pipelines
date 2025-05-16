@@ -654,7 +654,6 @@ workflow test_customized_compared{
     main:
     profiles.combine(profiles).map{t->t.sort()}.filter{t->t[0] != t[1]}.unique().set{profile_pairs}
     compare_general_customized(profile_pairs,stb_file)
-    get_customized_compared_comps(compare_general_customized.out.compare)
 
 }
 

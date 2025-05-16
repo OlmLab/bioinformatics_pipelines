@@ -26,7 +26,7 @@ process download_gtdbtk_db {
     
     publishDir "${params.output_dir}/gtdbtk_db"
     output:
-    path "gtdbtk_data", emit: gtdbtk_db
+    path "release*", emit: gtdbtk_db
     
     script:
     """
