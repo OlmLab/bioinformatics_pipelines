@@ -24,6 +24,11 @@ params.include_kraken2=false
 params.kraken2_db_link="https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20250402.tar.gz"
 params.humann_uniref90 = null // default is null
 params.humann_chocophlan = null // default is null
+// EXCLUDE PARAMETERS
+params.exclude_kraken=false
+params.exclude_metaphlan=false
+params.exclude_sylph=false
+params.exclude_humann=false
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -476,14 +481,7 @@ workflow roadmap_6{
     sample_name
     reads
     main:
-    if (params.sylph_db)
-    {
-        sylph_db=file(params.sylph_db)
-    }
-    else
-    {
-        sylph_db=download_sylph_db()
-    }
+
     sample_name.multiMap{t->
         sample_name_sylph:t
         sample_name_metaphlan:t
@@ -499,55 +497,73 @@ workflow roadmap_6{
     reads1_sylph: t[0]
     reads2_sylph: t[1]
     }.set{sylph_reads}
-   
+
+    if (!params.exclude_sylph)
+    {
+        if (params.sylph_db)
+    {
+        sylph_db=file(params.sylph_db)
+    }
+    else
+    {
+        sylph_db=download_sylph_db()
+    }
+
     estimate_abundance_sylph(sylph_reads.reads1_sylph.collect(), sylph_reads.reads2_sylph.collect(), sylph_db)
+    }
    
-    
-    if (params.metaphlan_db)
-      {
-       metaphlan_db=file(params.metaphlan_db)
-      }
-      else
-      {
-      metaphlan_db=download_metaphlan_db()
-      }
-      estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
-      merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
-      calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
-    
+    if (!params.exclude_metaphlan)
+    {
+        if (params.metaphlan_db)
+          {
+           metaphlan_db=file(params.metaphlan_db)
+          }
+        else
+          {
+          metaphlan_db=download_metaphlan_db()
+          }
+        estimate_abundance_metaphlan(sample_names.sample_name_metaphlan,reads_all.reads_metaphlan, metaphlan_db)
+        merge_metaphlan_tables(estimate_abundance_metaphlan.out.abundance.collect())
+        calculate_diversity_metaphlan(merge_metaphlan_tables.out.merged_table)
+    }
    
+    if (!params.exclude_kraken)
+    {
+        if (params.kraken2_db)
+        {
+            kraken2_db=file(params.kraken2_db)
+        }
+        else
+        {
+            kraken2_db=download_kraken2_db(params.kraken2_db_link)
+        }
+        classify_kraken2(sample_name,reads, kraken2_db)
+        estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report,kraken2_db)
+    }
+
     
-    if (params.kraken2_db)
+    if (!params.exclude_humann)
     {
-        kraken2_db=file(params.kraken2_db)
+        if (params.humann_uniref90)
+        {
+            humann_uniref90=file(params.humann_uniref90)
+        }
+        else
+        {
+	    download_humann_uniref90()
+            humann_uniref90=download_humann_uniref90.out.humann_uniref90
+        }
+        if (params.humann_chocophlan)
+        {
+            humann_chocophlan=file(params.humann_chocophlan)
+        }
+        else
+        {
+            download_humann_chocophlan()
+	    humann_chocophlan=download_humann_chocophlan.out.humann_chocophlan
+        }
+        profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90, metaphlan_db)    
     }
-    else
-    {
-        kraken2_db=download_kraken2_db(params.kraken2_db_link)
-    }
-    classify_kraken2(sample_name,reads, kraken2_db)
-    estimate_abundance_bracken(classify_kraken2.out.sample_name,classify_kraken2.out.kraken_report,kraken2_db)
-    
-    
-    if (params.humann_uniref90)
-    {
-        humann_uniref90=file(params.humann_uniref90)
-    }
-    else
-    {
-	download_humann_uniref90()
-        humann_uniref90=download_humann_uniref90.out.humann_uniref90
-    }
-    if (params.humann_chocophlan)
-    {
-        humann_chocophlan=file(params.humann_chocophlan)
-    }
-    else
-    {
-        download_humann_chocophlan()
-	humann_chocophlan=download_humann_chocophlan.out.humann_chocophlan
-    }
-    profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90, metaphlan_db)    
 }
 
 workflow roadmap_7{
