@@ -289,8 +289,33 @@ workflow {
     else if (params.roadmap_id=="roadmap_dev")
     {
         profiles=Channel.fromPath(params.profiles,type: 'dir')
+        if (params.subset_pairs)
+        {
+            if (!params.input_file)
+            {
+                sample_pairs(params.profiles,params.pair_mapping)
+                table=sample_pairs.out.sample_pairs
+                table=tableToDict(table)
+                profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
+                profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
+                profile_pairs=profile1.merge(profile2)
+                
+            }
+            else
+            {
+                table=tableToDict(file("${params.input_file}"))
+                profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
+                profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
+                profile_pairs=profile1.merge(profile2)   
+            }
+            
+        }
+        else
+        {
+            profiles.combine(profiles).map{t->t.sort()}.filter{t->t[0] != t[1]}.unique().set{profile_pairs}
+        }
         stb_file=file(params.stb_file)
-        test_customized_compared(profiles,stb_file)
+        test_customized_compared(profile_pairs,stb_file)
 
     }
     else
@@ -649,10 +674,9 @@ workflow binning {
 
 workflow test_customized_compared{
     take:
-    profiles
+    profile_pairs
     stb_file
     main:
-    profiles.combine(profiles).map{t->t.sort()}.filter{t->t[0] != t[1]}.unique().set{profile_pairs}
     compare_general_customized(profile_pairs,stb_file)
 
 }
@@ -703,7 +727,7 @@ include {compare_instrain_profiles;
          profile_with_instrain;
          make_stb_file_instrain;
          compare_general_customized;
-         get_customized_compared_comps;
+         sample_pairs;
          } from './modules/strain'
 
 include { dereplicate_drep;write_genome_list } from './modules/dereplication'

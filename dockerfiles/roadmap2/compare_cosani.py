@@ -5,7 +5,9 @@ import pandas as pd
 import inStrain
 import numpy as np
 import json
+import pathlib
 from multiprocessing import Pool
+import glob
 def get_cos_ani(f1:np.ndarray,f2:np.ndarray)->float:
     """
     Calculate the cosine ANI (Average Nucleotide Identity) between two samples.
@@ -259,7 +261,29 @@ def compare_stats(compare_profile:dict,
         
         
     return output
+
+def sampler(
+            profiles:list,
+            pair_mapping:dict,
+            n_samples:int = 1000,
+            )->pd.DataFrame:
+    """
+    from all possible pairs of profiles.
+    Args:
+        profiles: The list of pathes to all profiles.
+        pair_mapping: a dictionary that maps a pair of profiles to their grouings.
+    Returns:
+        A pandas dataframe of the sampled pairs.
+    """
+    locations={x.name:str(x) for x in profiles}
+    df=pd.DataFrame({"pair":pair_mapping.keys(), "group":pair_mapping.values()})
+    df=df.groupby("group").sample(n_samples,replace=False)
+    df["profile_1"]=df["pair"].str.split("|").str[0].apply(lambda x: locations.get(x,None))
+    df["profile_2"]=df["pair"].str.split("|").str[1].apply(lambda x: locations.get(x,None))
+    df.dropna(inplace=True)
+    return df[["profile_1","profile_2","group"]].reset_index(drop=True)
     
+
 @click.group()
 def cli():
     """Compare SNV profiles and analyze strain sharing statistics."""
@@ -298,31 +322,27 @@ def compare_command(profile_1: str, profile_2: str, stb_file: str, output_file: 
     
     click.echo(f"Comparison results saved to {output_file}")
 
-@cli.command('stats')
-@click.option('--compare_profile', type=click.Path(exists=True), required=True, help='Path to the comparison profile JSON file.')
-@click.option('--strain_pop_treshold', type=float, required=False, help='The population ANI threshold to call a genome as shared.', default=99)
-@click.option('--strain_cos_treshold', type=float, required=False, help='The cosine ANI threshold to call a genome as shared.',default=99)
-@click.option('--strain_con_treshold', type=float, required=False, help='The consensus ANI threshold to call a genome as shared.',default=99)
-@click.option('--output_file', type=click.Path(), help='Path to save the stats results (defaults to input filename with _stats suffix).')
-def stats_command(compare_profile: str, strain_pop_treshold: float, strain_cos_treshold: float, strain_con_treshold: float, output_file: str = None):
-    """Generate statistics from a comparison profile."""
-    with open(compare_profile, "r") as f:
-        profile_data = json.load(f)
+
+
+@cli.command('sample')
+@click.option('--profiles', type=str, required=True, help='Paths to the inStrain profiles.')
+@click.option('--pair_mapping', type=click.Path(exists=True), required=True, help='Path to the pair mappin json file.')
+@click.option('--n_samples', type=int, default=1000, help='Number of samples to draw.')
+@click.option('--output_file', type=click.Path(), required=True, help='Path to save the sampled pairs as a CSV file.')
+def sample_command(profiles: list, pair_mapping: str, n_samples: int, output_file: str):
+    """Sample pairs of profiles from all possible pairs."""
+    with open(pair_mapping, "r") as f:
+        pair_mapping = json.load(f)
     
-    res = compare_stats(
-        compare_profile=profile_data,
-        strain_pop_treshold=strain_pop_treshold,
-        strain_cos_treshold=strain_cos_treshold,
-        strain_con_treshold=strain_con_treshold
+    profiles = [pathlib.Path(x) for x in glob.glob(profiles)]
+    df = sampler(
+        profiles=profiles,
+        pair_mapping=pair_mapping,
+        n_samples=n_samples
     )
-    
-    if output_file is None:
-        output_file = compare_profile.replace(".json", "_stats.json")
-    
-    with open(output_file, "w") as f:
-        json.dump(res, f, indent=4)
-    
-    click.echo(f"Statistics results saved to {output_file}")
+    df.to_csv(output_file, index=False)
+    click.echo(f"Sampled pairs saved to {output_file}")
 
 if __name__ == "__main__":
     cli()
+    

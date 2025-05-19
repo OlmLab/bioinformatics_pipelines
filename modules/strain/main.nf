@@ -53,6 +53,23 @@ process make_stb_file_instrain{
     """
 }
 
+process sample_pairs{
+    /*
+    * This process creates sample pairs for InStrain comparison.
+    * It takes in the profiles and outputs the sample pairs.
+    */
+    publishDir "${params.output_dir}/instrain/sample_pairs", mode: 'copy'
+    input:
+    val instrain_profiles 
+    path pair_mapping
+    output:
+    path "sampled_pairs.csv", emit: sample_pairs
+    script:
+    """
+    compare_cosani.py sample --profiles ${instrain_profiles} --pair_mapping ${pair_mapping} --output_file samples.csv --n_samples ${params.n_samples}
+    """
+}
+
 process compare_general_customized{
     /*
     * This process compares the InStrain profiles using a customized method.
@@ -72,20 +89,3 @@ process compare_general_customized{
     """
 }
 
-process get_customized_compared_comps{
-    /*
-    * This process gets the customized comparison components.
-    * It takes in the comparison results and outputs the components.
-    */
-    publishDir "${params.output_dir}/instrain/compare_customized", mode: 'copy'
-    input:
-    path comparison
-    output:
-    path "${comparison.baseName}_strain_share.json", emit: strainshare
-    
-    script:
-    """
-    compare_cosani.py stats --compare_profile ${comparison} --output_file ${comparison.baseName}_strain_share.json --strain_pop_treshold ${params.is_strain_pop_treshold} --strain_cos_treshold ${params.is_strain_cos_treshold} --strain_con_treshold ${params.is_strain_con_treshold} 
-
-    """
-}
