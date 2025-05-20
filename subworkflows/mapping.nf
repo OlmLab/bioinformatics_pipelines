@@ -125,7 +125,7 @@ workflow parse_input_genome {
             }
             index_bowtie2(genome_db, "genome_db")
             bt2_index = index_bowtie2.out.bowtie2_index_files
-            bt2_basename = index_bowtie2.out.reference_genome
+            bt2_basename = genome_db
         }
 
         // Handle list of FASTA file paths
@@ -169,7 +169,7 @@ workflow parse_input_genome {
             genome_db = concatenate_files.out.concatenated_file
             index_bowtie2(genome_db, "genome_db")
             bt2_index = index_bowtie2.out.bowtie2_index_files
-            bt2_basename = index_bowtie2.out.reference_genome
+            bt2_basename = genome_db
         }
 
     emit:

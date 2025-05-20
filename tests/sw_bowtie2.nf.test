@@ -1,0 +1,25 @@
+nextflow_workflow {
+
+    name "Bowtie2 Subworkflow Trial"
+    script "../subworkflows/mapping.nf"
+    workflow "bowtie2_sw"
+
+    test("Bowtie2 Test1") {
+
+        when {
+            params {
+                stageInMode = 'symlink'
+                input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
+                genome_db = "${baseDir}/tests/test_data/small_genome.fasta"
+            }
+        }
+
+        then {
+
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 5
+        }
+
+    }
+
+}

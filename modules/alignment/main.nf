@@ -4,18 +4,21 @@ process index_bowtie2 {
     * specified output directory.
     */
     publishDir "${params.output_dir}/bowtie2_index/${sample_name}", mode: 'copy'
+    
     input:
     path reference_genome
     val sample_name
+
     output:
-    path "*.bt2*" , emit: bowtie2_index_files
-    path reference_genome , emit: reference_genome
+    path "*.bt2*", emit: bowtie2_index_files
     val sample_name, emit: sample_name
+
     script:
     """
     bowtie2-build --threads ${task.cpus} ${reference_genome} ${reference_genome}
     """
 }
+
 
 process align_bowtie2 {
     /*

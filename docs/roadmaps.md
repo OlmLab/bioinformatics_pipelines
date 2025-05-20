@@ -2,6 +2,42 @@
 ------
 Roadmaps are end-to-end workflows in nextflow. A rule of thumb for a roadmap is to be useful enough on its own to be called seperately. However, it must be designed in a way to work well with other roadmaps. This document provides a list of available roadmaps and their descriptions as well as the instrunctions to run them.
 
+###  Steps
+
+1. **Install Nextflow**: Make sure you have Nextflow installed on your system. The recommended way to install Nextflow is via conda:
+    ```bash
+    module load anaconda
+    conda create -n nf-pipeline -c bioconda nextflow
+    conda activate nf-pipeline
+    ```
+2. **Clone the repository**: Go to an appropriate location and clone this repository to your local machine using git:
+    ```bash
+    cd /path/to/your/directory
+    git clone https://github.com/ParsaGhadermazi/nf-metgenomics-piplines.git
+    ``` 
+3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap](roadmaps.md) markdown file.
+a roadmap is simply a group of Nextflow workflows chained together. 
+
+4. **Run the pipeline**: To run a pipeline, navigate to the directory containing the pipeline and execute the following command:
+    ```bash
+    nextflow run pipelines.nf --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
+    ```
+    Replace `<roadmap-id>` with the name of the pipeline you want to run and `<config_file>` with the path to your configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
+
+or (RECOMENDED) you can skip step 2, and run the pipeline directly by using the following command:
+
+```bash
+nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
+```
+In this case, the configs will be stored in $HOME/.nextflow/assets/OlmLab/bioinformatics_pipelines/config/
+
+### Optional arguments
+
+- `-profile <profile>`: Specify the execution profile. Most imprtant ones are:
+    - `ignore_errors`: Continue execution even if some tasks fail. This is useful for testing and debugging and maybe in some cases when you want skip some of the problematic samples.
+- `-resume`: Resume the pipeline from the last completed task. This is useful if the pipeline was interrupted or if you want to re-run only a subset of tasks.
+
+
 ## roadmap_1
 ### Description
 This roadmap is designed to perform metagenomics analysis using a de novo assembly approach. The workflow starts with raw sequencing data and performs the following steps:
@@ -12,7 +48,7 @@ This roadmap is designed to perform metagenomics analysis using a de novo assemb
 
 **NOTE**: This roadmap specifically does not include functional or taxonomic annotation of the bins. Those are delegated to other roadmaps.
 
-![roadmap_1](imgs/dag-roadmap_1.svg)
+![roadmap_1](../imgs/dag-roadmap_1.svg)
 
 ### How to run
 Multiple samples can be processed in parallel with nextflow. Roadmap1 workflow needs three inputs:
@@ -46,7 +82,7 @@ This roadmap is designed to perform strain-level analysis using inStrain. You ca
 3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
 4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
 
-![roadmap_2](imgs/dag-roadmap_2.svg)
+![roadmap_2](../imgs/dag-roadmap_2.svg)
 
 ### How to run
 Currently there are two ways to run this roadmap:
@@ -105,7 +141,7 @@ This roadmap is designed to perform dereplication on a set of provided genomes. 
 2. **Dereplicating the genomes**: The genomes are dereplicated using dRep.
 
 
-![roadmap_3](imgs/dag-roadmap_3.svg)
+![roadmap_3](../imgs/dag-roadmap_3.svg)
 ### How to run
 So far, the only way to run this roadmap is to provide glob address to the genomes. The genomes should be in fasta format. You can run the roadmap using the following command:
 ```bash
@@ -122,7 +158,7 @@ This roadmap provides end-to-end analysis of a set of samples. It extracts the b
 2. **Dereplicating the genomes**: The bins are dereplicated using dRep.
 3. **Strain-level analysis**: The genomes are combined to make one fasta file. The reads are aligned to the genomes using bowtie2. inStrain is then used to profile the reads against the fasta files. Finally, the profiles are compared using inStrain compare.
 
-![roadmap_1_3_2](imgs/dag-roadmap_1_3_2.svg)
+![roadmap_1_3_2](../imgs/dag-roadmap_1_3_2.svg)
 ### How to run
 This roadmap has identical input to roadmap_1. You can either provide a CSV file containing the sample names and reads or a CSV file containing the accession ids of the samples. The host genome is also required. You can run the roadmap using the following command:
 ```bash
@@ -136,7 +172,7 @@ nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-h
 ### Description
 This roadmap is a subset of roadmap_1. It is designed to QC the reads and decontaminate them using a reference genome. The workflow starts with the following steps
 
-![roadmap_4](imgs/dag-roadmap_4.svg)
+![roadmap_4](../imgs/dag-roadmap_4.svg)
 
 ### How to run
 Similar to roadmap_1, there are two ways to run this roadmap:
@@ -167,7 +203,7 @@ This roadmap first dereplicates a list of input genomes and then performs strain
 3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
 4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
 
-![roadmap_3_2](imgs/dag-roadmap_3_2.svg)
+![roadmap_3_2](../imgs/dag-roadmap_3_2.svg)
 
 ### How to run
 
@@ -200,7 +236,7 @@ This roadmap is designed only to map a set of reads to a set of reference genome
 1- **paired** : The reads are pared with genomes so any task would be aligning the reads to the corresponding genome.
 2- **cross** : Each sample is aligned to each fasta file in the input genomes.
 
-![roadmap_5](imgs/dag-roadmap_5.svg)
+![roadmap_5](../imgs/dag-roadmap_5.svg)
 
 ### How to run
 To run this roadmap, you need to provide a CSV file containing the following columns:
@@ -227,7 +263,7 @@ This roadmap is designed to perform metagenomics analysis using a reference-base
 4. **Estimate functional profile of the samples with HUMAnN**: This will run HUMAnN3 to estimate the functional profile of the samples.
 
 
-![roadmap_6](imgs/dag-roadmap_6.svg)
+![roadmap_6](../imgs/dag-roadmap_6.svg)
 
 ### How to run
 To run this roadmap, you need to provide a CSV file containing the following columns:
@@ -264,7 +300,7 @@ This roadmap is designed to do both taxonomic and functional annotation of a set
 1. **Taxonomic annotation with GTDB**: The genomes are annotated using GTDB.
 2. **Functional annotation**: UNDER CUSTRUCTION
 
-![roadmap_7](imgs/dag-roadmap_7.svg)
+![roadmap_7](../imgs/dag-roadmap_7.svg)
 ### How to run
 To run this roadmap, you need to provide either path to the genomes or a CSV file containing the paths to the genomes you want to annotate. This file should contain one column:
 -   fasta_files (address to each fasta file)

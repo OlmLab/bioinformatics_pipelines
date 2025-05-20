@@ -2,6 +2,10 @@ nf-metgenomics-piplines: Changelog
 
 The format is based on Keep a Changelog and this project (kind of) adheres to Semantic Versioning.
 
+v1.2.1 - [5/20/25]
+* More tests added
+* New Docs added for testing and the alternative entry points
+
 v1.2.0 - [5/14/25]
 * InStrain subworkflow added
 * Centralized configs

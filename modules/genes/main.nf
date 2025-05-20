@@ -7,7 +7,7 @@ process find_genes_prodigal{
     path "${genome.name}_genes.faa", emit: genes_faa
     script:
     """
-    prodigal -i ${genome} -d ${genome.name}_genes.fna -a ${genome.name}_genes.faa
+    prodigal -i ${genome} -d ${genome.name}_genes.fna -a ${genome.name}_genes.faa -p meta
     
     """
 }
