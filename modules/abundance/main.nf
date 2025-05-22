@@ -105,16 +105,15 @@ process classify_kraken2{
     output:
     val sample_name, emit: sample_name
     path "kraken2_report.txt", emit: kraken_report
-    path "kraken2_output.txt", emit: kraken_output
     script:
     if (reads.size() == 2) {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output kraken2_output.txt --paired ${reads[0]} ${reads[1]} 
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt  --paired ${reads[0]} ${reads[1]} 
     """
     }
     else{
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --unclassified-out unclassified_reads.fastq --output kraken2_output.txt ${reads[0]}
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt   ${reads[0]}
     """
     }   
 }
