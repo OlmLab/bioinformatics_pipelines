@@ -288,32 +288,12 @@ workflow {
     
     else if (params.roadmap_id=="roadmap_dev")
     {
-        profiles=Channel.fromPath(params.profiles,type: 'dir')
-        if (params.subset_pairs)
-        {
-            if (!params.input_file)
-            {
-                sample_pairs(params.profiles,params.pair_mapping)
-                table=sample_pairs.out.sample_pairs
-                table=tableToDict(table)
-                profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
-                profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
-                profile_pairs=profile1.merge(profile2)
-                
-            }
-            else
-            {
-                table=tableToDict(file("${params.input_file}"))
-                profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
-                profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
-                profile_pairs=profile1.merge(profile2)   
-            }
-            
-        }
-        else
-        {
-            profiles.combine(profiles).map{t->t.sort()}.filter{t->t[0] != t[1]}.unique().set{profile_pairs}
-        }
+
+
+        table=tableToDict(params.input_profiles)
+        profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
+        profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
+        profile_pairs=profile1.merge(profile2)
         stb_file=file(params.stb_file)
         test_customized_compared(profile_pairs,stb_file)
 

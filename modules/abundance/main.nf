@@ -68,7 +68,8 @@ process estimate_abundance_metaphlan{
     path "${sample_name}_metaphlan.tsv", emit: abundance
     script:
     """
-    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db.name} --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
+    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db.name}  --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
+    rm ${sample_name}.bowtie2.bz2
     """
 }
 
@@ -108,12 +109,12 @@ process classify_kraken2{
     script:
     if (reads.size() == 2) {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt  --paired ${reads[0]} ${reads[1]} 
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output /dev/null  --paired ${reads[0]} ${reads[1]} 
     """
     }
     else{
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt   ${reads[0]}
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output /dev/null   ${reads[0]}
     """
     }   
 }
