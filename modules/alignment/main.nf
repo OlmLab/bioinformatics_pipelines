@@ -224,6 +224,7 @@ process map_reads_fasta_pairs{
     /*
     * This process lumps indexing and mapping of reads to a genome. It  is useful for when we have read-genome pairs.
     */
+    publishDir "${params.output_dir}/bowtie2_alignment/${sample_name}_${reference_fasta.baseName}", mode: 'copy', pattern: "*sorted.bam"
     input:
     val sample_name
     path reads
@@ -232,7 +233,7 @@ process map_reads_fasta_pairs{
     output:
     path reads, emit: reads
     path reference_fasta, emit: reference_fasta
-    path "${sample_name}.sorted.bam", emit: sorted_bam
+    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam
     val sample_name, emit: sample_name
     val paired, emit: paired
 
@@ -243,7 +244,7 @@ process map_reads_fasta_pairs{
         -x ${reference_fasta} \\
         -1 ${reads[0]} \\
         -2 ${reads[1]} \\
-        --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}.sorted.bam
+        --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
     """
 
 

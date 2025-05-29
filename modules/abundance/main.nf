@@ -69,7 +69,8 @@ process estimate_abundance_metaphlan{
     path "${sample_name}_metaphlan.tsv", emit: abundance
     script:
     """
-    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db.name} --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
+    metaphlan ${reads[0]},${reads[1]}  --nproc ${task.cpus} --bowtie2db ${metaphlan_db.name}  --bowtie2out ${sample_name}.bowtie2.bz2 --input_type fastq -o ${sample_name}_metaphlan.tsv
+    rm ${sample_name}.bowtie2.bz2
     """
 }
 
@@ -106,16 +107,15 @@ process classify_kraken2{
     output:
     val sample_name, emit: sample_name
     path "kraken2_report.txt", emit: kraken_report
-    path "kraken2_output.txt", emit: kraken_output
     script:
     if (reads.size() == 2) {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output kraken2_output.txt --paired ${reads[0]} ${reads[1]} 
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output /dev/null  --paired ${reads[0]} ${reads[1]} 
     """
     }
     else{
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --unclassified-out unclassified_reads.fastq --output kraken2_output.txt ${reads[0]}
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --report kraken2_report.txt --output /dev/null   ${reads[0]}
     """
     }   
 }
