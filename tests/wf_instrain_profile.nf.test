@@ -7,8 +7,6 @@ nextflow_workflow {
 
     test("InStrain profile Test1") {
 
-        
-
         when {
             params {
                 input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
