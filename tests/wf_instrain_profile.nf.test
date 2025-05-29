@@ -1,0 +1,28 @@
+nextflow_workflow {
+
+    name "InStrain Workflow Trial"
+    script "../workflows/instrain.nf"
+    workflow "instrain_profile_wf"
+    config "tests/tests.config"
+
+    test("InStrain profile Test1") {
+
+        
+
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
+                genome_db = "https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/modules/data/genomics/sarscov2/genome/genome.fasta"
+                stb = "${baseDir}/tests/test_data/test_small.stb"
+            }
+        }
+
+        then {
+
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 10
+        }
+
+    }
+
+}

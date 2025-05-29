@@ -1,0 +1,24 @@
+nextflow_workflow {
+
+    name "Sylph Subworkflow Trial"
+    script "../subworkflows/sylph.nf"
+    workflow "sylph_sw"
+
+    test("Sylph Test1") {
+
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
+                sylph_db = "${baseDir}/tests/test_data/database.syldb"
+            }
+        }
+
+        then {
+
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 4
+        }
+
+    }
+
+}

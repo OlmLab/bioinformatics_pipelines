@@ -4,18 +4,22 @@ process index_bowtie2 {
     * specified output directory.
     */
     publishDir "${params.output_dir}/bowtie2_index/${sample_name}", mode: 'copy'
+    
     input:
     path reference_genome
     val sample_name
+
     output:
-    path "*.bt2*" , emit: bowtie2_index_files
+    path "*.bt2*", emit: bowtie2_index_files
     path reference_genome , emit: reference_genome
     val sample_name, emit: sample_name
+
     script:
     """
     bowtie2-build --threads ${task.cpus} ${reference_genome} ${reference_genome}
     """
 }
+
 
 process align_bowtie2 {
     /*
@@ -119,17 +123,18 @@ process bowtie2_to_sorted_bam{
     Aligns reads to a reference genome using Bowtie2 but instead of outputting a SAM file, it directly
     converts the output to a sorted BAM file using Samtools. This is useful for large datasets where
     */
-    publishDir "${params.output_dir}/bowtie2_alignment/${sample_name}"
     input:
     val sample_name
     path reference_genome
     path reads
     path reference_genome_index_files
+    val keep_unmapped
     output:
-    path "${sample_name}.sorted.bam", emit: sorted_bam
+    path "${sample_name}.${reference_genome.baseName}.sorted.bam", emit: sorted_bam
     val sample_name, emit: sample_name
     val paired, emit: paired
     script:
+    def samtools_view_flags = keep_unmapped ? "-bS" : "-bS -F 4"
     if (reads.size() == 2) {
         paired=true
         """
@@ -138,7 +143,7 @@ process bowtie2_to_sorted_bam{
             -1 ${reads[0]} \\
             -2 ${reads[1]} \\
             --threads ${task.cpus} \\
-            | samtools view -bS - | samtools sort -o ${sample_name}.sorted.bam
+            | samtools view ${samtools_view_flags} - | samtools sort -o ${sample_name}.${reference_genome.baseName}.sorted.bam
         """
         
     }
@@ -149,7 +154,7 @@ process bowtie2_to_sorted_bam{
             -x ${reference_genome} \\
             -U ${reads[0]} \\
             --threads ${task.cpus} \\
-            | samtools view -bS - | samtools sort -o ${sample_name}.sorted.bam
+            | samtools view ${samtools_view_flags} - | samtools sort -o ${sample_name}.${reference_genome.baseName}.sorted.bam
         """
 
     }
