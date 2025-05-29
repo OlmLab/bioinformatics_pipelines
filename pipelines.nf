@@ -390,7 +390,7 @@ workflow roadmap_2 {
     if (params.roadmap_2_input_type=="reads")
     {
         index_bowtie2(genome_db, "genomes_db")
-        bowtie2_to_sorted_bam(sample_names, index_bowtie2.out.reference_genome, inputs, index_bowtie2.out.bowtie2_index_files)
+        bowtie2_to_sorted_bam(sample_names, index_bowtie2.out.reference_genome, inputs, index_bowtie2.out.bowtie2_index_files,false)
         sorted_bam=bowtie2_to_sorted_bam.out.sorted_bam
     }
     else if (params.roadmap_2_input_type=="bams")
@@ -610,7 +610,7 @@ workflow quality_control {
     main:
     read_qc_fastp(sample_name, reads)
     index_bowtie2(host_genome,host_genome.baseName)
-    bowtie2_to_sorted_bam(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files)  
+    bowtie2_to_sorted_bam(read_qc_fastp.out.sample_name,index_bowtie2.out.reference_genome, read_qc_fastp.out.fastp_qcd_reads,index_bowtie2.out.bowtie2_index_files,true)  
     get_unmapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
     get_mapped_reads(bowtie2_to_sorted_bam.out.sorted_bam,bowtie2_to_sorted_bam.out.paired,bowtie2_to_sorted_bam.out.sample_name)
 
