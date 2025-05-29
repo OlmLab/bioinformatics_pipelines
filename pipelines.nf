@@ -285,6 +285,13 @@ workflow {
             error "Please provide the stb_file information using the stb_file parameter."
         }
     }
+    else if (params.roadmap_id=="download_samples")
+    {
+
+        table=tableToDict(file("${params.input_file}"))
+        get_sequences_from_sra(Channel.fromList(table["Run"]))
+
+    }
     
     else if (params.roadmap_id=="roadmap_dev")
     {
