@@ -61,17 +61,20 @@ workflow parse_input_reads {
             bowtie2_sw()
             sorted_bam = bowtie2_sw.out.sorted_bam
             sample_names = bowtie2_sw.out.sample_names
+            single_end = bowtie2_sw.out.single_end
         }
         // Handle bam input
         else if (params.input_bams) {
             table = tableToDict(file("${params.input_bams}"))
             sorted_bam = Channel.fromPath(table["bam_files"].collect{t->file(t)})
             sample_names = Channel.from(table["sample_name"])
+            single_end = Channel.from(params.single_end)
         }
 
     emit:
         sample_names
         sorted_bam
+        single_end
 }
 
 workflow parse_input_genome {

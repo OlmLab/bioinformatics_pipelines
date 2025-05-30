@@ -20,6 +20,9 @@ include {
 include {add_prefix_to_fasta;
 } from "${projectDir}/modules/binning"
 
+include {parse_input_reads;
+} from "${projectDir}/subworkflows/sylph"
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     MAIN WORKFLOWS
@@ -31,8 +34,11 @@ workflow bowtie2_sw {
     parse_input_reads()
     parse_input_genome()
 
-    // Run bowtie2
-    inputs = parse_input_reads.out.reads1.merge(parse_input_reads.out.reads2)
+    // Determine input reads based on whether we have paired-end data
+    inputs = parse_input_reads.out.has_paired_end.value ? 
+        parse_input_reads.out.reads1.merge(parse_input_reads.out.reads2) : 
+        parse_input_reads.out.reads1
+
     bowtie2_to_sorted_bam(
         parse_input_reads.out.sample_names,
         parse_input_genome.out.bt2_basename,
@@ -44,6 +50,7 @@ workflow bowtie2_sw {
     emit:
         sample_names = bowtie2_to_sorted_bam.out.sample_name
         sorted_bam = bowtie2_to_sorted_bam.out.sorted_bam
+        single_end = parse_input_reads.out.has_paired_end.value
 }
 
 /*
@@ -51,43 +58,6 @@ workflow bowtie2_sw {
     HELPER WORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
-workflow parse_input_reads {
-    main:
-        // Check required parameters
-        if (!params.input_file) {
-            error "Input file parameter is required but was not provided"
-        }
-
-        // Parse input table
-        table = tableToDict(file("${params.input_file}"))
-
-        if (params.input_type == "sra") {
-            // Handle SRA input
-            get_sequences_from_sra(Channel.fromList(table["Run"]))
-            sample_names = get_sequences_from_sra.out.sra_ids
-            reads_1 = get_sequences_from_sra.out.fastq_files.map{ it[0] }
-            reads_2 = get_sequences_from_sra.out.fastq_files.map{ it[1] }
-        }
-        else {
-            // Handle local files
-            def required_columns = ['reads1', 'reads2', 'sample_name']
-            def missing_columns = required_columns.findAll { !table.containsKey(it) }
-            
-            if (missing_columns) {
-                error "Required columns missing from input file: ${missing_columns.join(', ')}"
-            }
-
-            reads_1 = Channel.fromPath(table["reads1"].collect{t->file(t)})
-            reads_2 = Channel.fromPath(table["reads2"].collect{t->file(t)})
-            sample_names = Channel.fromList(table["sample_name"])
-        }
-
-    emit:
-        sample_names
-        reads1 = reads_1
-        reads2 = reads_2
-}
 
 workflow parse_input_genome {
     main:

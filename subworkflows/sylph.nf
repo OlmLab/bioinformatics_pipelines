@@ -20,21 +20,21 @@ include {
 */
 workflow sylph_sw {
     // Parse the input
-    parse_input()
+    parse_input_reads()
 
     // Set up database
     sylph_db = file(params.sylph_db)
 
     // Run Sylph analysis on each sample
-    if (parse_input.out.has_paired_end.value) {
+    if (parse_input_reads.out.has_paired_end.value) {
         estimate_abundance_sylph(
-            parse_input.out.reads1_sylph,
-            parse_input.out.reads2_sylph,
+            parse_input_reads.out.reads1,
+            parse_input_reads.out.reads2,
             sylph_db
         )
     } else {
         estimate_abundance_sylph_SE(
-            parse_input.out.reads1_sylph,
+            parse_input_reads.out.reads1,
             sylph_db
         )
     }
@@ -45,7 +45,7 @@ workflow sylph_sw {
     HELPER WORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-workflow parse_input {
+workflow parse_input_reads {
     main:
         // Validate required parameters
         if (!params.input_file) {
@@ -90,7 +90,7 @@ workflow parse_input {
 
     emit:
         sample_names
-        reads1_sylph = params.input_type == "sra" ? sylph_reads.reads1_sylph : sylph_reads[0]
-        reads2_sylph = params.input_type == "sra" ? sylph_reads.reads2_sylph : sylph_reads[1]
+        reads1 = params.input_type == "sra" ? sylph_reads.reads1_sylph : sylph_reads[0]
+        reads2 = params.input_type == "sra" ? sylph_reads.reads2_sylph : sylph_reads[1]
         has_paired_end
 }
