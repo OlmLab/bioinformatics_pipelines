@@ -6,9 +6,6 @@ nextflow_workflow {
     config "configs/gutbot.config"
 
     test("InStrain profile Test1") {
-
-        
-
         when {
             params {
                 input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
@@ -16,13 +13,38 @@ nextflow_workflow {
                 stb = "${baseDir}/tests/test_data/test_small.stb"
             }
         }
-
         then {
-
             assert workflow.success
             assert workflow.trace.succeeded().size() == 10
         }
+    }
 
+    test("InStrain profile Test SE") {
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_s.csv"
+                genome_db = "https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/modules/data/genomics/sarscov2/genome/genome.fasta"
+                stb = "${baseDir}/tests/test_data/test_small.stb"
+            }
+        }
+        then {
+            assert workflow.failed
+        }
+    }
+
+    test("InStrain profile Test SE 2") {
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_s.csv"
+                genome_db = "https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/modules/data/genomics/sarscov2/genome/genome.fasta"
+                stb = "${baseDir}/tests/test_data/test_small.stb"
+                instrain_args = "--skip_plot_generation --pairing_filter all_reads"
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 8
+        }
     }
 
 }

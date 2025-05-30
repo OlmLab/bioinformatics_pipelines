@@ -1,0 +1,3 @@
+sample_name,reads1,reads2
+SAMEA115771738,https://ftp.sra.ebi.ac.uk/vol1/fastq/ERR133/032/ERR13331432/ERR13331432_1.fastq.gz,https://ftp.sra.ebi.ac.uk/vol1/fastq/ERR133/032/ERR13331432/ERR13331432_2.fastq.gz
+SAMEA115771288,https://ftp.sra.ebi.ac.uk/vol1/fastq/ERR133/058/ERR13330958/ERR13330958_1.fastq.gz,https://ftp.sra.ebi.ac.uk/vol1/fastq/ERR133/058/ERR13330958/ERR13330958_2.fastq.gz

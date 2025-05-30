@@ -10,6 +10,7 @@ include {
 
 include {
     estimate_abundance_sylph;
+    estimate_abundance_sylph_SE;
 } from "${projectDir}/modules/abundance"
 
 /*
@@ -19,17 +20,24 @@ include {
 */
 workflow sylph_sw {
     // Parse the input
-    parse_input()
+    parse_input_reads()
 
     // Set up database
     sylph_db = file(params.sylph_db)
 
     // Run Sylph analysis on each sample
-    estimate_abundance_sylph(
-        parse_input.out.reads1_sylph,
-        parse_input.out.reads2_sylph,
-        sylph_db
-    )
+    if (parse_input_reads.out.has_paired_end.value) {
+        estimate_abundance_sylph(
+            parse_input_reads.out.reads1,
+            parse_input_reads.out.reads2,
+            sylph_db
+        )
+    } else {
+        estimate_abundance_sylph_SE(
+            parse_input_reads.out.reads1,
+            sylph_db
+        )
+    }
 }
 
 /*
@@ -37,78 +45,52 @@ workflow sylph_sw {
     HELPER WORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-workflow parse_input {
+workflow parse_input_reads {
     main:
-        // Check required parameters
-        def required_params = ['input_file']
-        def missing_params = required_params.findAll { params[it] == null }
+        // Validate required parameters
+        if (!params.input_file) {
+            error "Required parameter 'input_file' is missing"
+        }
+
+        // Parse input table and validate columns
+        def input_table = tableToDict(file("${params.input_file}"))
+        def required_columns = ['reads1', 'sample_name']
+        def missing_columns = required_columns.findAll { !input_table.containsKey(it) }
         
-        if (missing_params) {
+        if (missing_columns) {
             error """
-            The following required parameters are missing:
-            ${missing_params.join('\n')}
-            
-            Please provide all required parameters to run this workflow.
+            Missing required columns: ${missing_columns.join(', ')}
+            Required columns: reads1, sample_name
+            Optional columns: reads2 (for paired-end reads)
+            Found columns: ${input_table.keySet().join(', ')}
             """
         }
 
-        if (params.input_type=="sra") {
-            table = tableToDict(file("${params.input_file}"))
-            get_sequences_from_sra(Channel.fromList(table["Run"]))
-            sample_names = get_sequences_from_sra.out.sra_ids
-            reads = get_sequences_from_sra.out.fastq_files
+        // Create channels for reads and sample names
+        reads_1 = Channel.fromPath(input_table["reads1"].collect { file(it) })
+        sample_names = Channel.fromList(input_table["sample_name"])
+        
+        // Handle paired-end reads if available
+        has_paired_end = input_table.containsKey("reads2")
+        if (!has_paired_end) {
+            log.warn "⚠️  Single-end reads detected - paired-end reads recommended for better results"
         }
-        else {
-            table = tableToDict(file("${params.input_file}"))
-            
-            // Check required columns exist in input table
-            def required_columns = ['reads1', 'reads2', 'sample_name'] 
-            def missing_columns = required_columns.findAll { !table.containsKey(it) }
-            
-            if (missing_columns) {
-                error """
-                The following required columns are missing from the input file:
-                ${missing_columns.join('\n')}
-                
-                Input file must contain columns: reads1, reads2, and sample_name
-                """
-            }
+        
+        reads_2 = has_paired_end ? Channel.fromPath(input_table["reads2"].collect { file(it) }) : Channel.empty()
 
-            // Create channels for each sample's reads
-            reads_1 = Channel.fromPath(table["reads1"].collect{t->file(t)})
-            reads_2 = Channel.fromPath(table["reads2"].collect{t->file(t)})
-            sample_names = Channel.fromList(table["sample_name"])
-        }
-
-        // Process reads for different analyses
-        if (params.input_type=="sra") {
-            reads.multiMap{t->
-                reads_sylph: t
-                reads_metaphlan: t
-            }.set{reads_all}
-
-            reads_all.reads_sylph.multiMap{t->
-                reads1_sylph: t[0]
-                reads2_sylph: t[1]
-            }.set{sylph_reads}
-        } else {
-            // For local files, reads are already paired
-            reads_1.multiMap{t->
-                reads_sylph: t
-                reads_metaphlan: t
-            }.set{reads1_all}
-
-            reads_2.multiMap{t->
-                reads_sylph: t
-                reads_metaphlan: t
-            }.set{reads2_all}
-
+        // Process reads for Sylph
+        reads_1.multiMap { t -> reads_sylph: t }.set { reads1_all }
+        
+        if (has_paired_end) {
+            reads_2.multiMap { t -> reads_sylph: t }.set { reads2_all }
             sylph_reads = [reads1_all.reads_sylph, reads2_all.reads_sylph]
+        } else {
+            sylph_reads = [reads1_all.reads_sylph, Channel.empty()]
         }
 
     emit:
         sample_names
-        reads1_sylph = params.input_type=="sra" ? sylph_reads.reads1_sylph : sylph_reads[0]
-        reads2_sylph = params.input_type=="sra" ? sylph_reads.reads2_sylph : sylph_reads[1]
-        reads_metaphlan = params.input_type=="sra" ? reads_all.reads_metaphlan : reads1_all.reads_metaphlan
+        reads1 = params.input_type == "sra" ? sylph_reads.reads1_sylph : sylph_reads[0]
+        reads2 = params.input_type == "sra" ? sylph_reads.reads2_sylph : sylph_reads[1]
+        has_paired_end
 }
