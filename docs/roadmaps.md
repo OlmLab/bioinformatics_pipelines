@@ -1,6 +1,6 @@
 # Roadmaps
 ------
-Roadmaps are end-to-end workflows in nextflow. A rule of thumb for a roadmap is to be useful enough on its own to be called seperately. However, it must be designed in a way to work well with other roadmaps. This document provides a list of available roadmaps and their descriptions as well as the instrunctions to run them.
+Roadmaps are end-to-end workflows. A rule of thumb for a roadmap is to be useful enough on its own to be called seperately. However, it must be designed in a way to work well with other roadmaps. This document provides a list of available roadmaps and their descriptions as well as the instrunctions to run them.
 
 ###  Steps
 
@@ -18,23 +18,34 @@ Roadmaps are end-to-end workflows in nextflow. A rule of thumb for a roadmap is 
 3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap](roadmaps.md) markdown file.
 a roadmap is simply a group of Nextflow workflows chained together. 
 
+4. **Figure out the execution profile**: you can run the pipelines using three different environments:
+    - **local**: You can run the pipelines on your local machine. For this you need to have all the necessary tools installed.
+    - **docker**: If you have Docker installed, you can run the pipeline with this option using docker as profile.
+    - **apptainer**: If you have Apptainer installed, you can run the pipeline with this option using apptainer as profile.
+
 4. **Run the pipeline**: To run a pipeline, navigate to the directory containing the pipeline and execute the following command:
+
     ```bash
-    nextflow run pipelines.nf --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
+    nextflow run pipelines.nf --roadmap <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer> 
+   
     ```
-    Replace `<roadmap-id>` with the name of the pipeline you want to run and `<config_file>` with the path to your configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
+    If you want to run this pipeline on a cluster, after making sure that you have the necessary configuration file, you can run the pipeline using the following command:
+
+    ```bash
+    nextflow run pipelines.nf --roadmap <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer> -c <SERVER_SPECIFIC_CONFIG,configs/modules.config>
+    ```
+
+    Replace `<roadmap-id>` with the name of the pipeline you want to run with the path to your server configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. For Alpine HPC and GutBot there are ready configuration files. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
 
 or (RECOMENDED) you can skip step 2, and run the pipeline directly by using the following command:
 
 ```bash
-nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id> -c config/alpine.config <roadmap-specific-arguments>
+nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id>  -profile <local|docker|apptainer> <roadmap-specific-arguments>
 ```
 In this case, the configs will be stored in $HOME/.nextflow/assets/OlmLab/bioinformatics_pipelines/config/
 
 ### Optional arguments
 
-- `-profile <profile>`: Specify the execution profile. Most imprtant ones are:
-    - `ignore_errors`: Continue execution even if some tasks fail. This is useful for testing and debugging and maybe in some cases when you want skip some of the problematic samples.
 - `-resume`: Resume the pipeline from the last completed task. This is useful if the pipeline was interrupted or if you want to re-run only a subset of tasks.
 
 
@@ -63,7 +74,7 @@ Currently there are two ways to run this roadmap:
     -   reads2
 Also you need to provide the path to the host genome. An example run with this mode looks like this:
     ```bash
-    nextflow run pipelines.nf --roadmap roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "local" --input_file <path-to-csv-files> -c configs/local.config
+    nextflow run pipelines.nf --roadmap roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "local" --input_file <path-to-csv-files> -profile apptainer -c configs/alpine.config,configs/modules.config
     ```
     **NOTE** You should change the config file according to your environment. 
 
@@ -71,9 +82,11 @@ Also you need to provide the path to the host genome. An example run with this m
     -   Run
 
     An example run with this mode looks like this:
+
     ```bash
-    nextflow run pipelines.nf --roadmap roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "sra" --input_file <path-to-csv-files> -c configs/local.config
+    nextflow run pipelines.nf --roadmap roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "sra" --input_file <path-to-csv-files> -profile apptainer -c configs/alpine.config,configs/modules.config
     ```
+
 ## roadmap_2
 ### Description
 This roadmap is designed to perform strain-level analysis using inStrain. You can provide a list of samples and genomes in the form of a CSV file. The workflow starts with the following steps:
@@ -99,7 +112,7 @@ Currently there are two ways to run this roadmap:
 
 If you want to use the first option, you use this roadmap like this:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv"  -c configs/local.config --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file>
+nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv"  --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file> -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 
 2- You have a list of samples and genomes and you want to make the genome database and the stb files using the pipeline.
@@ -116,7 +129,7 @@ In this case, you need to provide two CSV files:
 
 If you want to choose the second option, you can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
+nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 
 In any of the previous cases, you can alternatively provide bam files instead of the reads. In this case you still provide the samples.csv file with the following columns:
@@ -125,7 +138,7 @@ In any of the previous cases, you can alternatively provide bam files instead of
 
 You can run the roadmap using the following command (As an example when youhave the stb file and the genome database):
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_2"  --input_bams "<path-to-samples.csv"  -c configs/local.config --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file>
+nextflow run pipelines.nf --roadmap_id "roadmap_2"  --input_bams "<path-to-samples.csv"  --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file> -profile apptainer -c configs/alpine.config,configs/modules.config
 
 ```
 
@@ -145,7 +158,7 @@ This roadmap is designed to perform dereplication on a set of provided genomes. 
 ### How to run
 So far, the only way to run this roadmap is to provide glob address to the genomes. The genomes should be in fasta format. You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_3" --input_genomes "<path-to-genomes>" -c configs/local.config
+nextflow run pipelines.nf --roadmap_id "roadmap_3" --input_genomes "<path-to-genomes>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 **NOTE** You should change the config file according to your environment. The input_genomes should be a glob address to the genomes. For example, if you have a folder named "genomes" containing all the genomes, you can use "genomes/*.fasta" as the input_genomes.
 
@@ -162,7 +175,7 @@ This roadmap provides end-to-end analysis of a set of samples. It extracts the b
 ### How to run
 This roadmap has identical input to roadmap_1. You can either provide a CSV file containing the sample names and reads or a CSV file containing the accession ids of the samples. The host genome is also required. You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-host-genome>" --input_type "local" --input_file <path-to-csv-files> -c configs/local.config
+nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-host-genome>" --input_type "local" --input_file <path-to-csv-files> -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 
 **NOTE** You should change the config file according to your environment. The input_file should be a CSV file containing the sample names and reads or a CSV file containing the accession ids of the samples. The host genome is also required.
@@ -182,7 +195,7 @@ Similar to roadmap_1, there are two ways to run this roadmap:
     -   reads2
 Also you need to provide the path to the host genome. An example run with this mode looks like this:
     ```bash
-    nextflow run pipelines.nf --roadmap roadmap_4 --host_genome "raw_data/ref_genome.fa" --input_type "local" --input_file <path-to-csv-files> -c configs/local.config
+    nextflow run pipelines.nf --roadmap roadmap_4 --host_genome "raw_data/ref_genome.fa" --input_type "local" --input_file <path-to-csv-files> -profile apptainer -c configs/alpine.config,configs/modules.config
     ```
     **NOTE** You should change the config file according to your environment. 
 
@@ -191,7 +204,7 @@ Also you need to provide the path to the host genome. An example run with this m
 
     An example run with this mode looks like this:
     ```bash
-    nextflow run pipelines.nf --roadmap roadmap_4 --host_genome "<path-to-reference-genome-fasta" --input_type "sra" --input_file <path-to-csv-files> -c configs/local.config
+    nextflow run pipelines.nf --roadmap roadmap_4 --host_genome "<path-to-reference-genome-fasta" --input_type "sra" --input_file <path-to-csv-files> -profile apptainer -c configs/alpine.config,configs/modules.config
     ```
 
 ---------------
@@ -217,7 +230,7 @@ Also, you need to provide a CSV file containing the paths to the genomes you wan
 
 You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_3_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
+nextflow run pipelines.nf --roadmap_id "roadmap_3_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 #### Relevant optional arguments
 --drep_s_ani : The average nucleotide identity threshold for dereplication. Default is 0.95
@@ -249,7 +262,7 @@ Also, you need to provide a CSV file containing the paths to the genomes you wan
 
 You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -c configs/local.config 
+nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 #### Relevant optional arguments
 --roadmap_5_pairmode : By default, the roadmap runs in pair mode. Otherwise, you should provide "cross" as the argument.
@@ -273,7 +286,7 @@ To run this roadmap, you need to provide a CSV file containing the following col
 
 You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-samples.csv>" -c configs/local.config --include_metaphlan
+nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-samples.csv>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 #### Relevant optional arguments
 --sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used. NOTE: you should directly provide the path to the Sylph database **file** ending in syldb.
@@ -291,7 +304,10 @@ nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-sampl
 --metaphlan_b_distance: type of distance metric to use for Metaphlan beta diversity analysis. 
 --metaphlan_diversity: type of diversity metric to use for Metaphlan diversity analysis. Default is beta diversity.
 --metaphlan_db: Path to the Metaphlan database. If this is not provided, it will be downloaded automatically.
-
+--exclude_sylph: If you want to exclude Sylph from the analysis, you can provide this argument. 
+--exclude_metaphlan: If you want to exclude Metaphlan from the analysis, you can provide this argument.
+--exclude_kraken2: If you want to exclude KRAKEN2 from the analysis, you can provide this argument.
+--exclude_humann: If you want to exclude HUMAnN from the analysis, you can provide this argument.
 
 
 ## roadmap_7
@@ -307,11 +323,12 @@ To run this roadmap, you need to provide either path to the genomes or a CSV fil
 You can run the roadmap using the following commands:
 
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_7" --bins_dir "<path-to-genomes>" -c configs/local.config 
+nextflow run pipelines.nf --roadmap_id "roadmap_7" --bins_dir "<path-to-genomes>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 or 
+
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-genomes-table.csv>" -c configs/local.config 
+nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-genomes-table.csv>" -profile apptainer -c configs/alpine.config,configs/modules.config
 ```
 
 #### Relevant optional arguments

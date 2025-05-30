@@ -6,7 +6,7 @@ Author: Parsa Ghadermazi (pagh1940@colorado.edu)
 
 ## Description
 -----
-This repository contains Nextflow pipelines for computational research in the Olm lab at University of Colorado Boulder. The pipelines are designed to be modular and reusable, allowing for easy integration into various bioinformatics workflows. The main environment to run these pipelines is on Alpine HPC or GutBot internal server.
+This repository contains Nextflow pipelines for computational research in the Olm lab at University of Colorado Boulder. The pipelines are designed to be modular and reusable, allowing for easy integration into various bioinformatics workflows. 
 
 There are currently two ways to run this code- one of which is based on roadmaps, and one of which is based on entry points. They have different documentation, as outlined below.
 

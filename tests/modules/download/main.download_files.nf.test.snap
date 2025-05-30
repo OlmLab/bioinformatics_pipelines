@@ -1,0 +1,19 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    "example.txt:md5,51ce4dcef1fa486499b8b50dcfd91c33"
+                ],
+                "downloaded_files": [
+                    "example.txt:md5,51ce4dcef1fa486499b8b50dcfd91c33"
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.2"
+        },
+        "timestamp": "2025-05-30T11:42:45.803604"
+    }
+}

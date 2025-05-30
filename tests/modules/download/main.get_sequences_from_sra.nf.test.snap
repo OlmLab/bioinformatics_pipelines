@@ -1,0 +1,31 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "SRR33759865_1.fastq.gz:md5,4ad9b417c9207ab33c4eace774ab7a21",
+                        "SRR33759865_2.fastq.gz:md5,2bb9759910feaa600f25255b9ff7ff79"
+                    ]
+                ],
+                "1": [
+                    "SRR33759865"
+                ],
+                "fastq_files": [
+                    [
+                        "SRR33759865_1.fastq.gz:md5,4ad9b417c9207ab33c4eace774ab7a21",
+                        "SRR33759865_2.fastq.gz:md5,2bb9759910feaa600f25255b9ff7ff79"
+                    ]
+                ],
+                "sra_ids": [
+                    "SRR33759865"
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.2"
+        },
+        "timestamp": "2025-05-30T10:55:52.921908"
+    }
+}

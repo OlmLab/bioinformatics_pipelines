@@ -12,8 +12,8 @@ process download_files {
     val output_dir
     
     output:
-    path "${output_dir}/*"
-    
+    path "${output_dir}/*", emit: downloaded_files
+
     script:
     """
     wget -P ${output_dir} ${url}
@@ -38,7 +38,10 @@ process get_sequences_from_sra {
     
     script:
     """
-    fastq-dump --split-files --gzip --outdir ${sra_ids} ${sra_ids}
+    prefetch ${sra_ids}
+    fasterq-dump --split-files --outdir ${sra_ids} ${sra_ids}
+    gzip ${sra_ids}/${sra_ids}*.fastq
+    rm -rf ${sra_ids}/${sra_ids}.sra
     """
 }
 
