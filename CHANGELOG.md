@@ -1,6 +1,10 @@
 nf-metgenomics-piplines: Changelog
 
 The format is based on Keep a Changelog and this project (kind of) adheres to Semantic Versioning.
+
+v1.4.0 - [5/30/25]
+* Integrating 1 more week of Matt's edits
+
 v1.3.1 - [5/30/25]
 * Making tests run with apptainer
 
