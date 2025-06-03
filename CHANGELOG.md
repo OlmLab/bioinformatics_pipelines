@@ -2,6 +2,11 @@ nf-metgenomics-piplines: Changelog
 
 The format is based on Keep a Changelog and this project (kind of) adheres to Semantic Versioning.
 
+# Changelog
+
+v1.5.0 - [6/03/25]
+* Merged all configs into the modules.config for easier testing and pipeline execution
+
 v1.4.1 - [6/03/25]
 * Reformatting to match profile based system
 

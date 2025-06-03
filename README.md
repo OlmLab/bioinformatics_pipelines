@@ -18,13 +18,17 @@ There are currently two ways to run this code- one of which is based on roadmaps
 -----
 
 Basic testing is provided using the [nf-test](https://www.nf-test.com) framework.
-Before running the tests, find the best execution environment profile for the test. Currently, there are three main profiles available: apptainer, docker, local. Use apptainer or docker if you have either of these container tools installed. If you want to run without a container choose local. Note that when using local you have to have all the required tools in each workflow installed. Once you figure out the environment, run the following command from the base directory of this repo to run all tests:
+Before running the tests, find the best execution environment profile for the test. Currently, there are three main profiles available: apptainer, docker, local. The rest of the profiles are cluster-specific settings. Use apptainer or docker if you have either of these container tools installed. If you want to run without a container choose local. Note that when using local you have to have all the required tools in each workflow installed. Once you figure out the environment, run the following command from the base directory of this repo to run all tests:
 
 ```
-$ nf-test test --profile <docker|apptainer|local> 
+$ nf-test test --profile <docker|apptainer|local,cluster_profile> 
 
 ```
+As an example, the right way to test the pipelines on alpine HPC is:
 
+```bash
+$ nf-test test --profile apptainer,alpine
+```
 ## Bioplumber
 -----
 
@@ -33,7 +37,9 @@ Most of the roadmaps require input data in the form of CSV files. Builing such t
 ```bash
 pip install bioplumber
 ```
+
 After installing, you can run the following command to enter the textual user interface for managing your files:
+
 ```bash
 file-mgr
 ```
