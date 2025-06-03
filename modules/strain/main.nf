@@ -9,11 +9,13 @@ process profile_with_instrain{
     path fastafile 
     path stb_file
     path genes
+
     output:
     path("${bamfile.baseName}_instrain_profile"),emit: instrain_profiles
     script:
+    def extra_args = task.ext.args ?: ''
     """
-    inStrain profile ${bamfile} ${fastafile} -o ${bamfile.baseName}_instrain_profile -p ${task.cpus} -s ${stb_file} --database_mode --gene_file ${genes}
+    inStrain profile ${bamfile} ${fastafile} -o ${bamfile.baseName}_instrain_profile -p ${task.cpus} -s ${stb_file} --database_mode --gene_file ${genes} ${extra_args}
     """
 }
 
