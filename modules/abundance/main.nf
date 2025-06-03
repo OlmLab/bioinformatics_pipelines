@@ -38,7 +38,8 @@ process  estimate_abundance_coverm{
 
 process estimate_abundance_sylph{
     /*
-    * This process estimates the abundance of bins using Sylph. It takse the reads and prepared database.
+    * This process estimates the abundance of bins using Sylph. It takes the reads and prepared database.
+    * For paired-end reads.
     */
     publishDir "${params.output_dir}/sylph_abundance/", mode: 'copy'
     
@@ -52,6 +53,25 @@ process estimate_abundance_sylph{
     script:
     """
     sylph profile ${sylph_db} -1 ${reads_1} -2 ${reads_2} -t ${task.cpus} > sylph_abundance.tsv
+    """
+}
+
+process estimate_abundance_sylph_SE{
+    /*
+    * This process estimates the abundance of bins using Sylph. It takes the reads and prepared database.
+    * For single-end reads.
+    */
+    publishDir "${params.output_dir}/sylph_abundance/", mode: 'copy'
+    
+    input:
+    path reads_1
+    path sylph_db
+
+    output:
+    path "${reads_1.simpleName}_sylph_abundance.tsv", emit: abundance
+    script:
+    """
+    sylph profile ${sylph_db} ${reads_1} -t ${task.cpus} > ${reads_1.simpleName}_sylph_abundance.tsv
     """
 }
 

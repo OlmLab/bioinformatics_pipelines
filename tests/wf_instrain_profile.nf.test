@@ -3,12 +3,9 @@ nextflow_workflow {
     name "InStrain Workflow Trial"
     script "../workflows/instrain.nf"
     workflow "instrain_profile_wf"
-    config "tests/tests.config"
+    config "configs/gutbot.config"
 
     test("InStrain profile Test1") {
-
-        
-
         when {
             params {
                 input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
@@ -16,20 +13,18 @@ nextflow_workflow {
                 stb = "${baseDir}/tests/test_data/test_small.stb"
             }
         }
-
         then {
-
             assert workflow.success
             assert workflow.trace.succeeded().size() == 10
         }
-
     }
+
     test("InStrain profile Test SE") {
         when {
             params {
                 input_file = "${baseDir}/tests/test_data/test_input_reads_s.csv"
                 genome_db = "https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/modules/data/genomics/sarscov2/genome/genome.fasta"
-                stb = "${baseDir}/tests/test_data/test_small.stb"Add commentMore actions
+                stb = "${baseDir}/tests/test_data/test_small.stb"
             }
         }
         then {
@@ -50,6 +45,6 @@ nextflow_workflow {
             assert workflow.success
             assert workflow.trace.succeeded().size() == 8
         }
+    }
 
-}
 }

@@ -62,8 +62,6 @@ workflow parse_input_reads {
             sorted_bam = bowtie2_sw.out.sorted_bam
             sample_names = bowtie2_sw.out.sample_names
             single_end = bowtie2_sw.out.single_end
-
-
         }
         // Handle bam input
         else if (params.input_bams) {

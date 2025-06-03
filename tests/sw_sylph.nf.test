@@ -5,20 +5,45 @@ nextflow_workflow {
     workflow "sylph_sw"
 
     test("Sylph Test1") {
-
         when {
             params {
                 input_file = "${baseDir}/tests/test_data/test_input_reads_v1.csv"
                 sylph_db = "${baseDir}/tests/test_data/database.syldb"
             }
         }
-
         then {
 
             assert workflow.success
             assert workflow.trace.succeeded().size() == 4
         }
+    }
 
+    test("Sylph Test2: ENA FTP input") {
+        config "configs/gutbot.config"
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_v2.csv"
+                sylph_db = "${baseDir}/tests/test_data/database.syldb"
+            }
+        } 
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 2
+        }
+    }
+
+    test("Sylph SingleEnd Test") {
+        when {
+            params {
+                input_file = "${baseDir}/tests/test_data/test_input_reads_s.csv"
+                sylph_db = "${baseDir}/tests/test_data/database.syldb"
+            }
+        }
+        then {
+
+            assert workflow.success
+            assert workflow.trace.succeeded().size() == 3
+        }
     }
 
 }

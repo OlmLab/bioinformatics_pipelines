@@ -22,6 +22,7 @@ include {add_prefix_to_fasta;
 
 include {parse_input_reads;
 } from "${projectDir}/subworkflows/sylph"
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     MAIN WORKFLOWS
@@ -33,8 +34,8 @@ workflow bowtie2_sw {
     parse_input_reads()
     parse_input_genome()
 
-    // Run bowtie2
-    inputs = parse_input_reads.out.has_paired_end.value ?
+    // Determine input reads based on whether we have paired-end data
+    inputs = parse_input_reads.out.has_paired_end.value ? 
         parse_input_reads.out.reads1.merge(parse_input_reads.out.reads2) : 
         parse_input_reads.out.reads1
 
@@ -50,7 +51,7 @@ workflow bowtie2_sw {
         sample_names = bowtie2_to_sorted_bam.out.sample_name
         sorted_bam = bowtie2_to_sorted_bam.out.sorted_bam
         single_end = parse_input_reads.out.has_paired_end.value
-}       
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,4 +146,3 @@ workflow parse_input_genome {
         bt2_index
         bt2_basename
 }
-

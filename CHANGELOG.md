@@ -2,7 +2,23 @@ nf-metgenomics-piplines: Changelog
 
 The format is based on Keep a Changelog and this project (kind of) adheres to Semantic Versioning.
 
+v1.4.1 - [6/03/25]
+* Reformatting to match profile based system
+
+v1.4.0 - [5/30/25]
+* Integrating 1 more week of Matt's edits
+
+v1.3.1 - [5/30/25]
+* Making tests run with apptainer
+
+v1.3.0 - [5/30/25]
+* Integrating branches
+
+v1.2.2 - [5/29/25]
+* Allow single_end reads for sylph
+
 v1.2.1 - [5/20/25]
+* Added "save_bam" parameter for bowtie2 mapping
 * More tests added
 * New Docs added for testing and the alternative entry points
 

@@ -5,7 +5,6 @@ nextflow_workflow {
     workflow "bowtie2_sw"
 
     test("Bowtie2 Test1") {
-
         when {
             params {
                 stageInMode = 'symlink'
@@ -13,13 +12,12 @@ nextflow_workflow {
                 genome_db = "${baseDir}/tests/test_data/small_genome.fasta"
             }
         }
-
         then {
-
             assert workflow.success
             assert workflow.trace.succeeded().size() == 5
         }
     }
+
     test("Bowtie2 Test1 SE") {
         when {
             params {
@@ -29,7 +27,7 @@ nextflow_workflow {
             }
         }
         then {
-            assert workflow.successAdd commentMore actions
+            assert workflow.success
             assert workflow.trace.succeeded().size() == 4
         }
     }
