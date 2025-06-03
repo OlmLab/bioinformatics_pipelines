@@ -3,7 +3,6 @@ nextflow_workflow {
     name "InStrain Workflow Trial"
     script "../workflows/instrain.nf"
     workflow "instrain_profile_wf"
-    config "configs/gutbot.config"
 
     test("InStrain profile Test1") {
         when {

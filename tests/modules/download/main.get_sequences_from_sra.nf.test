@@ -3,7 +3,6 @@ nextflow_process {
     name "Test Process get_sequences_from_sra"
     script "modules/download/main.nf"
     process "get_sequences_from_sra"
-    config "../../../configs/gutbot.config"
 
     test("Should run without failures") {
 
