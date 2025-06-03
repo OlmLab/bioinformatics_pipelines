@@ -21,7 +21,7 @@ Basic testing is provided using the [nf-test](https://www.nf-test.com) framework
 Before running the tests, find the best execution environment profile for the test. Currently, there are three main profiles available: apptainer, docker, local. The rest of the profiles are cluster-specific settings. Use apptainer or docker if you have either of these container tools installed. If you want to run without a container choose local. Note that when using local you have to have all the required tools in each workflow installed. Once you figure out the environment, run the following command from the base directory of this repo to run all tests:
 
 ```
-$ nf-test test --profile <docker|apptainer|local,cluster_profile> 
+$ nf-test test --profile <docker|apptainer|local,other_profiles> 
 
 ```
 As an example, the right way to test the pipelines on alpine HPC is:
