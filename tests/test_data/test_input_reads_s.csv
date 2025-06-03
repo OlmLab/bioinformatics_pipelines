@@ -1,0 +1,4 @@
+sample_name,reads1
+SRR11140744,https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/illumina/sispa/SRR11140744_R1.fastq.gz
+SRR11140746,https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/illumina/sispa/SRR11140746_R1.fastq.gz
+SRR11140748,https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/illumina/sispa/SRR11140748_R1.fastq.gz
