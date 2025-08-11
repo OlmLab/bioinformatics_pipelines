@@ -247,5 +247,46 @@ process map_reads_fasta_pairs{
         --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
     """
 
+}
 
+process index_star {
+    /*
+    * This process indexes the reference genome using STAR. The index files are stored in the
+    * specified output directory.
+    */
+    publishDir "${params.output_dir}/star_index", mode: 'link'
+    
+    input:
+    path reference_genome
+    path reference_genome_gtf
+
+    output:
+    path "indexfiles/*", emit: star_index_files
+
+    script:
+    """
+    STAR --runThreadN ${task.cpus} --runMode genomeGenerate --genomeDir indexfiles --genomeFastaFiles ${reference_genome} --sjdbGTFfile ${reference_genome_gtf}
+    """
+}
+
+process align_star {
+    /*
+    * This process aligns the input FASTQ files to the reference genome using STAR. The output
+    * is a BAM file containing the aligned reads.
+    */
+    publishDir "${params.output_dir}/star_alignment/${sample_name}", mode: 'copy'
+    
+    input:
+    val sample_name
+    path index_files
+    path reads
+
+    output:
+    path "${sample_name}_staralignmentAligned.sortedByCoord.out.bam", emit: star_aligned_bam
+    val sample_name, emit: sample_name
+
+    script:
+    """
+    STAR --runMode alignReads --genomeDir ${index_files} --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${sample_name} --runThreadN ${task.cpus}
+    """
 }

@@ -29,4 +29,9 @@ This directory contains the Dockerfiles for the pipelines. Each Dockerfile is de
     -kraken2
     -bracken
     -humann
-
+- **roadmap7**:
+    - GTDB-Tk
+- **roadmap8**:
+    - trimmomatic
+    - star
+    - subread

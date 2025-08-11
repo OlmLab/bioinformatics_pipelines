@@ -274,17 +274,35 @@ workflow {
         roadmap_7(bins.collect())
         
     }
-    else if (params.roadmap_id=="test_customized_compared")
+    else if (params.roadmap_id=="bulk_rna_seq")
     {
-        if (!params.profiles)
+        if (params.input_type=="sra")
         {
-            error "Please provide the profiles information using the profiles parameter."
+            table=tableToDict(file("${params.input_file}"))
+            get_sequences_from_sra(Channel.fromList(table["Run"]))
+            sample_names=get_sequences_from_sra.out.sra_ids
+            reads=get_sequences_from_sra.out.fastq_files
+            host_genome=file(params.host_genome)
+            host_genome_gtf=file(params.host_genome_gtf)
+            bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
         }
-        if (!params.stb_file)
+        else if (params.input_type=="local")
         {
-            error "Please provide the stb_file information using the stb_file parameter."
+            table=tableToDict(file("${params.input_file}"))
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_name=Channel.fromList(table["sample_name"])
+            host_genome=file(params.host_genome)
+            host_genome_gtf=file(params.host_genome_gtf)
+            bulk_rna_seq(sample_name, reads, host_genome, host_genome_gtf)
+        }
+        else
+        {
+            error "Please provide the reads information using the file parameter."
         }
     }
+
     else if (params.roadmap_id=="download_samples")
     {
 
@@ -595,6 +613,21 @@ workflow roadmap_7{
     
 
 }
+
+workflow bulk_rna_seq{
+    // Standard bulk RNA-Seq workflow for quality control, alignment, and quantification.
+
+    take:
+    sample_name
+    reads
+    host_genome
+    host_genome_gtf
+    main:
+    read_qc_fastp(sample_name, reads)
+    index_star(host_genome, host_genome_gtf)
+    align_star(sample_name,index_star.out.star_index_files, read_qc_fastp.out.fastp_qcd_reads)
+
+}
 // ###### WORKFLOWS ###### //
 
 workflow quality_control {
@@ -683,7 +716,9 @@ include {
     get_unmapped_reads;
     get_mapped_reads;
     map_reads_fasta_pairs;
-    bowtie2_to_sorted_bam
+    bowtie2_to_sorted_bam;
+    index_star;
+    align_star;
         } from "./modules/alignment"
 
 include {assemble_with_megahit} from "./modules/assembly"
