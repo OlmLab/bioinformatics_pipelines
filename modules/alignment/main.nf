@@ -287,6 +287,6 @@ process align_star {
 
     script:
     """
-    STAR --runMode alignReads --genomeDir ${index_files} --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${sample_name} --runThreadN ${task.cpus}
+    STAR --runMode alignReads --genomeDir . --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${sample_name} --runThreadN ${task.cpus}
     """
 }
