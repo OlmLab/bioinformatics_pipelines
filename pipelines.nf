@@ -274,7 +274,7 @@ workflow {
         roadmap_7(bins.collect())
         
     }
-    else if (params.roadmap_id=="bulk_rna_seq")
+    else if (params.roadmap_id=="roadmap_8")
     {
         if (params.input_type=="sra")
         {
@@ -301,6 +301,34 @@ workflow {
         {
             error "Please provide the reads information using the file parameter."
         }
+    }
+    else if (params.roadmap_id=="roadmap_9")
+    {
+        if (params.input_type=="sra")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            get_sequences_from_sra(Channel.fromList(table["Run"]))
+            sample_names=get_sequences_from_sra.out.sra_ids
+            reads=get_sequences_from_sra.out.fastq_files
+            bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
+        }
+        else if (params.input_type=="local")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_name=Channel.fromList(table["sample_name"])
+            
+        }
+        else
+        {
+            error "Please provide the reads information using the file parameter."
+        }
+        assemble_rna_spades(sample_name, reads)
+        get_circular_contigs_cirit(assemble_rna_spades.out.sample_name, assemble_rna_spades.out.hard_filtered_transcripts)
+        get_circular_contigs_cirit(assemble_rna_spades.out.sample_name, assemble_rna_spades.out.soft_filtered_transcripts)
+        
     }
 
     else if (params.roadmap_id=="download_samples")
@@ -721,7 +749,10 @@ include {
     align_star;
         } from "./modules/alignment"
 
-include {assemble_with_megahit} from "./modules/assembly"
+include {assemble_with_megahit;
+        assemble_rna_spades;
+        get_circular_contigs_cirit;
+        } from "./modules/assembly"
 
 include {get_coverage_for_metabat2;
         binning_with_metabat2;

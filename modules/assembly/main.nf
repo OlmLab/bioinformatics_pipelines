@@ -38,3 +38,39 @@ process assemble_with_megahit{
         """
     }
 }
+
+process assemble_rna_spades{
+publishDir "rna_spades/${sample_name}", mode: params.publish_mode
+input:
+    val sample_name
+    path reads
+output:
+    path "hard_filtered_transcripts.fasta", emit: hard_filtered_transcripts
+    path "soft_filtered_transcripts.fasta", emit: soft_filtered_transcripts
+    val sample_name, emit: sample_name
+
+script:
+if (reads.size() == 2) {
+    """
+     rnaspades.py -1 ${reads[0]} -2 ${reads[1]} -o . --threads ${task.cpus} 
+    """
+}
+else{
+    """
+     rnaspades.py -s ${reads[0]} -o . --threads ${task.cpus} 
+    """
+}
+}
+
+process get_circular_contigs_cirit{
+publishDir "rna_spades/${sample_name}", mode: params.publish_mode
+input:
+    val sample_name
+    path assembly
+output:
+    path "circular_contigs.fasta", emit: circular_contigs
+script:
+    """
+    java -jar /Cirit.jar -i ${assembly} -o ${sample_name}_circular_contigs.fasta 
+    """
+}

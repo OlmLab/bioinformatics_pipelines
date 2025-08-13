@@ -282,11 +282,11 @@ process align_star {
     path reads
 
     output:
-    path "${sample_name}_staralignmentAligned.sortedByCoord.out.bam", emit: star_aligned_bam
+    path "${sample_name}_Aligned.sortedByCoord.out.bam", emit: star_aligned_bam
     val sample_name, emit: sample_name
 
     script:
     """
-    STAR --runMode alignReads --genomeDir . --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${sample_name} --runThreadN ${task.cpus}
+    STAR --runMode alignReads --genomeDir . --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix "${sample_name}_" --runThreadN ${task.cpus}
     """
 }
