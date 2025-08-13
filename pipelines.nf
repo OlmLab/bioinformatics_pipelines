@@ -310,7 +310,6 @@ workflow {
             get_sequences_from_sra(Channel.fromList(table["Run"]))
             sample_names=get_sequences_from_sra.out.sra_ids
             reads=get_sequences_from_sra.out.fastq_files
-            bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
         }
         else if (params.input_type=="local")
         {
@@ -326,7 +325,6 @@ workflow {
             error "Please provide the reads information using the file parameter."
         }
         assemble_rna_spades(sample_name, reads)
-        get_circular_contigs_cirit(assemble_rna_spades.out.sample_name, assemble_rna_spades.out.hard_filtered_transcripts)
         get_circular_contigs_cirit(assemble_rna_spades.out.sample_name, assemble_rna_spades.out.soft_filtered_transcripts)
         
     }
