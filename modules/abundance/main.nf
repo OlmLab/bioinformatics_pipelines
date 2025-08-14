@@ -192,3 +192,16 @@ process download_kraken2_db {
     rm kraken2_db/k2_standard_*.tar.gz
     """
 }
+
+process gene_count_featurecounts {
+    publishDir "${params.output_dir}/featurecounts", mode: 'copy'
+    input:
+    path bams
+    path annotation_gtf
+    output:
+    path "genecounts_raw.tsv", emit: featurecounts
+    script:
+    """
+    featureCounts -p -t exon -g gene_id -a ${annotation_gtf} -o genecounts_raw.tsv ${bams}
+    """
+}

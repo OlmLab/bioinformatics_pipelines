@@ -6,4 +6,5 @@ ADD Cirit-1.0.jar /Cirit.jar
 RUN chmod +x /Cirit.jar
 RUN echo "source activate spades" >> ~/.bashrc
 RUN conda init bash
+ENV  PATH="/opt/conda/envs/spades/bin:$PATH"
 

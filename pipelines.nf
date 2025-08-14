@@ -652,6 +652,9 @@ workflow bulk_rna_seq{
     read_qc_fastp(sample_name, reads)
     index_star(host_genome, host_genome_gtf)
     align_star(sample_name,index_star.out.star_index_files, read_qc_fastp.out.fastp_qcd_reads)
+    align_star.out.star_aligned_bam.collect().set{all_bams}
+    gene_count_featurecounts(all_bams, host_genome_gtf)
+
 
 }
 // ###### WORKFLOWS ###### //
@@ -772,6 +775,7 @@ include {estimate_abundance_coverm;
             download_kraken2_db;
             classify_kraken2;
             estimate_abundance_bracken;
+            gene_count_featurecounts;
          } from './modules/abundance'
 
 include {compare_instrain_profiles;
