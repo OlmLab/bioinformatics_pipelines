@@ -68,7 +68,7 @@ input:
     val sample_name
     path assembly
 output:
-    path "circular_contigs.fasta", emit: circular_contigs
+    path "${sample_name}_circular_contigs.fasta", emit: circular_contigs
 script:
     """
     java -jar /Cirit.jar -i ${assembly} -o ${sample_name}_circular_contigs.fasta 
