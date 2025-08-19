@@ -651,7 +651,7 @@ workflow bulk_rna_seq{
     main:
     read_qc_fastp(sample_name, reads)
     index_star(host_genome, host_genome_gtf)
-    align_star(sample_name,index_star.out.star_index_files, read_qc_fastp.out.fastp_qcd_reads)
+    align_star(read_qc_fastp.out.sample_name,index_star.out.star_index_files, read_qc_fastp.out.fastp_qcd_reads)
     align_star.out.star_aligned_bam.collect().set{all_bams}
     gene_count_featurecounts(all_bams, host_genome_gtf)
 
