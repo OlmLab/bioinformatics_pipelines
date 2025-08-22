@@ -40,7 +40,7 @@ process assemble_with_megahit{
 }
 
 process assemble_rna_spades{
-publishDir "rna_spades/${sample_name}", mode: params.publish_mode
+publishDir "${params.output_dir}/rna_spades/${sample_name}", mode: params.publish_mode
 input:
     val sample_name
     path reads
@@ -63,7 +63,7 @@ else{
 }
 
 process get_circular_contigs_cirit{
-publishDir "rna_spades/${sample_name}", mode: params.publish_mode
+publishDir "${params.output_dir}/cirit/${sample_name}", mode: params.publish_mode
 input:
     val sample_name
     path assembly

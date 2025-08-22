@@ -284,7 +284,6 @@ workflow {
             reads=get_sequences_from_sra.out.fastq_files
             host_genome=file(params.host_genome)
             host_genome_gtf=file(params.host_genome_gtf)
-            bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
         }
         else if (params.input_type=="local")
         {
@@ -295,11 +294,25 @@ workflow {
             sample_name=Channel.fromList(table["sample_name"])
             host_genome=file(params.host_genome)
             host_genome_gtf=file(params.host_genome_gtf)
-            bulk_rna_seq(sample_name, reads, host_genome, host_genome_gtf)
+
         }
+
         else
         {
             error "Please provide the reads information using the file parameter."
+        }
+
+        if (params.mode=="bulk_rna_seq")
+        {
+            bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
+        }
+        else if (params.mode=="single_cell_rna_seq")
+        {   
+            single_cell_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
+        }
+        else
+        {
+            error "Please provide a valid mode."
         }
     }
     else if (params.roadmap_id=="roadmap_9")
@@ -317,16 +330,23 @@ workflow {
             reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
-            sample_name=Channel.fromList(table["sample_name"])
+            sample_names=Channel.fromList(table["sample_name"])
             
         }
         else
         {
             error "Please provide the reads information using the file parameter."
         }
-        assemble_rna_spades(sample_name, reads)
-        get_circular_contigs_cirit(assemble_rna_spades.out.sample_name, assemble_rna_spades.out.soft_filtered_transcripts)
-        
+        assemble_rna_spades(sample_names, reads)
+        contigs=assemble_rna_spades.out.soft_filtered_transcripts.concat(assemble_rna_spades.out.hard_filtered_transcripts)
+        sample_names_ordered=assemble_rna_spades.out.sample_name.concat(assemble_rna_spades.out.sample_name)
+        contigs.merge(sample_names_ordered).set{contigs_with_sn}
+        contigs_with_sn.multiMap{t->
+            sample_name: t[1]+"_"+t[0].baseName
+            contig_file:t[0]
+            }.set{contigs_to_be_processed}
+        get_circular_contigs_cirit(contigs_to_be_processed.sample_name, contigs_to_be_processed.contig_file)
+
     }
 
     else if (params.roadmap_id=="download_samples")
@@ -658,7 +678,17 @@ workflow bulk_rna_seq{
 
 }
 // ###### WORKFLOWS ###### //
-
+workflow single_cell_rna_seq{
+    take:
+    sample_name
+    reads
+    host_genome
+    host_genome_gtf 
+    main:
+    read_qc_fastp(sample_name, reads)
+    index_kallisto(host_genome, host_genome_gtf)
+    map_reads_kallisto_single_cell(sample_name, index_kallisto.out.index_file, index_kallisto.out.t2g_file, read_qc_fastp.out.fastp_qcd_reads)
+}
 workflow quality_control {
     /*
     This workflow takes raw sequencing reads and performs quality control and decontamination.
@@ -748,6 +778,8 @@ include {
     bowtie2_to_sorted_bam;
     index_star;
     align_star;
+    index_kallisto;
+    map_reads_kallisto_single_cell;
         } from "./modules/alignment"
 
 include {assemble_with_megahit;
@@ -776,6 +808,7 @@ include {estimate_abundance_coverm;
             classify_kraken2;
             estimate_abundance_bracken;
             gene_count_featurecounts;
+
          } from './modules/abundance'
 
 include {compare_instrain_profiles;

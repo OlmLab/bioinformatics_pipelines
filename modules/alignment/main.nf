@@ -290,3 +290,47 @@ process align_star {
     STAR --runMode alignReads --genomeDir . --readFilesIn ${reads} --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outFileNamePrefix "${sample_name}_" --runThreadN ${task.cpus}
     """
 }
+
+process index_kallisto{
+    /*
+    * This process indexes the reference transcriptome using Kallisto. The index files are stored in the
+    * specified output directory.
+    */
+    publishDir "${params.output_dir}/kallisto_index", mode: 'link'
+    input:
+    path genome_sequence
+    path annotation_gtf
+
+    output:
+    path "index.idx", emit: index_file
+    path "t2g.txt", emit: t2g_file
+
+    script:
+    """
+    kb ref -i index.idx -g t2g.txt ${genome_sequence}  ${annotation_gtf}
+"""
+
+}
+
+process map_reads_kallisto_single_cell {
+    /*
+    * This process maps the input FASTQ files to the reference transcriptome using Kallisto. The output
+    * is a BAM file containing the aligned reads.
+    */
+    publishDir "${params.output_dir}/kallisto_alignment/${sample_name}", mode: 'copy'
+
+    input:
+    val sample_name
+    path index_file
+    path t2g_file
+    path reads
+
+    output:
+    path "${sample_name}/filtered_feature_bc_matrix.h5ad", emit: h5ad_file
+    val sample_name, emit: sample_name
+
+    script:
+    """
+    kb count -i ${index_file} -g ${t2g_file} -x 10xv2 -o ${sample_name} --h5ad ${reads}
+    """
+}
