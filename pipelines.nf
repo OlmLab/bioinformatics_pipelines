@@ -29,6 +29,7 @@ params.exclude_kraken=false
 params.exclude_metaphlan=false
 params.exclude_sylph=false
 params.exclude_humann=false
+params.scan_genome_batch_size=10
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -354,6 +355,16 @@ workflow {
 
         table=tableToDict(file("${params.input_file}"))
         get_sequences_from_sra(Channel.fromList(table["Run"]))
+
+    }
+    else if (params.roadmap_id=="scan_metagenome")
+    {
+
+        table=tableToDict(file("${params.input_file}"))
+        Channel.fromList(table["Run"]).set{ sra_acc }
+        genome=file(params.genome)
+        scanGenome(sra_acc.collate(params.scan_genome_batch_size), genome)
+
 
     }
     
@@ -712,6 +723,15 @@ workflow quality_control {
         paired=bowtie2_to_sorted_bam.out.paired
 }
 
+workflow scanGenome {
+    take:
+    sra_acc
+    genome
+    main:
+    buildSylphdb(genome)
+    sylphScanBatchFromSRA(sra_acc, buildSylphdb.out.sylph_db)
+}
+
 workflow assembly {
     take:
     sample_name
@@ -808,6 +828,8 @@ include {estimate_abundance_coverm;
             classify_kraken2;
             estimate_abundance_bracken;
             gene_count_featurecounts;
+            sylphScanBatchFromSRA;
+            buildSylphdb;
 
          } from './modules/abundance'
 

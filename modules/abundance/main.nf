@@ -205,3 +205,36 @@ process gene_count_featurecounts {
     featureCounts -p -t exon -g gene_id -a ${annotation_gtf} -o genecounts_raw.tsv ${bams}
     """
 }
+process buildSylphdb {
+    input:
+    path genomes
+    output:
+    path "*.syldb", emit: sylph_db
+    script:
+    """
+    sylph sketch -g ${genomes} -o db.syldb -t 50
+
+    """
+}
+
+process sylphScanBatchFromSRA{
+    input:
+        val sra_acc
+        path sylph_db
+    output:
+        file "${sra_acc}.report"
+    script:
+    """
+    mkdir sequence_dir
+    echo ${sra_acc} | parallel --tmpdir . --colsep ' ' -j ${params.sra_parallel_tasks} 'prefetch {1} -O sequence_dir/ \
+    && fasterq-dump --split-files --outdir sequence_dir/ sequence_dir/{1}
+    && gzip sequence_dir/{1}*.fastq
+    && rm -rf sequence_dir/{1}.sra
+    ls sequence_dir/ | parallel --tmpdir . --colsep ' ' -j ${params.sylph_parallel_tasks} 'num_seqs=\$(ls -1 sequence_dir/{1}*.fastq.gz | wc -l) &&\
+    if [ \${num_seqs} -eq 2 ]; then \
+    sylph profile ${sylph_db} -1 sequence_dir/{1}_1.fastq.gz -2 sequence_dir/{1}_2.fastq.gz --out {1}.report --cpus ${task.cpus} ; \
+    else \
+        sylph profile ${sylph_db} -1 sequence_dir/{1}.fastq.gz --out {1}.report --cpus ${task.cpus} ; \
+    fi'
+    """
+    }

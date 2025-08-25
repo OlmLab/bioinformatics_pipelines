@@ -9,6 +9,11 @@ RUN mv calculate_diversity.R /opt/conda/envs/roadmap6/bin/
 RUN conda run -n roadmap6 pip install humann
 RUN conda run -n roadmap6 conda install -c bioconda kraken2
 RUN conda run -n roadmap6 conda install -c bioconda bracken
+RUN conda run -n roadmap6 conda install parallel
+RUN wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.2.0/sratoolkit.3.2.0-ubuntu64.tar.gz && \
+    tar -xzf sratoolkit.tar.gz && \
+    rm sratoolkit.tar.gz
+ENV PATH="/sratoolkit.3.2.0-ubuntu64/bin:${PATH}"
 RUN echo "source activate roadmap6" >> ~/.bashrc
 RUN conda init bash
 ENV PATH="/opt/conda/envs/roadmap6/bin:$PATH"
