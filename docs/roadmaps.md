@@ -369,6 +369,7 @@ Currently there are two ways to run this roadmap:
     -   sample_name
     -   reads1
     -   reads2
+
 Also you need to provide the path to the reference transcriptome. An example run with this mode looks like this:
 
     ```bash
@@ -376,7 +377,7 @@ Also you need to provide the path to the reference transcriptome. An example run
     ```
     **NOTE** You should change the config file according to your environment. 
 
--   **sra**: In this case you only need a CSV file describig the accession id of your runs:
+-   **sra**: In this case you only need a CSV file describing the accession id of your runs:
     -   Run
 
     An example run with this mode looks like this:
