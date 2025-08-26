@@ -348,3 +348,39 @@ nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-
 #### Relevant optional arguments
 --gtdb_db : Path to the GTDB database. If this is not provided, the GTDB database will be downloaded.
 
+
+## roadmap_9
+### Description
+This roadmap is designed to detect circular RNA contigs from RNA-Seq data. The roadmap follows these steps:
+1. **Assembly**: The RNA-Seq reads are assembled into contigs using rnaSpades.
+2. **Circular Contig Detection**: The assembled contigs are analyzed to identify circular RNA structures. This is done using the cirit tool. 
+3. **Mapping**: The identified circular contigs are mapped to a reference transcriptome using minimap2.
+
+![roadmap_9](../imgs/dag-roadmap_9.svg)
+
+### How to run
+Multiple samples can be processed in parallel with nextflow. Roadmap_9 workflow needs three inputs:
+-   sample_name
+-   reads
+-   reference_transcriptome (e.g. https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_48/)
+
+Currently there are two ways to run this roadmap:
+-   **local**: You have the samples locally in the execution environment. In this case, you need to provide a csv file containing at least three columns:
+    -   sample_name
+    -   reads1
+    -   reads2
+Also you need to provide the path to the reference transcriptome. An example run with this mode looks like this:
+
+    ```bash
+    nextflow run pipelines.nf --roadmap roadmap_9 --reference_transcriptome <path-to-reference-transcriptome> --input_type "local" --input_file <path-to-csv-files> -profile apptainer,alpine
+    ```
+    **NOTE** You should change the config file according to your environment. 
+
+-   **sra**: In this case you only need a CSV file describig the accession id of your runs:
+    -   Run
+
+    An example run with this mode looks like this:
+
+    ```bash
+    nextflow run pipelines.nf --roadmap roadmap_9 --reference_transcriptome <path-to-reference-transcriptome> --input_type "sra" --input_file <path-to-csv-files> -profile apptainer,alpine
+    ```

@@ -324,6 +324,7 @@ workflow {
             get_sequences_from_sra(Channel.fromList(table["Run"]))
             sample_names=get_sequences_from_sra.out.sra_ids
             reads=get_sequences_from_sra.out.fastq_files
+            reference_transcriptome=file(params.reference_transcriptome)
         }
         else if (params.input_type=="local")
         {
@@ -332,21 +333,14 @@ workflow {
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
             sample_names=Channel.fromList(table["sample_name"])
-            
+            reference_transcriptome=file(params.reference_transcriptome)
+
         }
         else
         {
             error "Please provide the reads information using the file parameter."
         }
-        assemble_rna_spades(sample_names, reads)
-        contigs=assemble_rna_spades.out.soft_filtered_transcripts.concat(assemble_rna_spades.out.hard_filtered_transcripts)
-        sample_names_ordered=assemble_rna_spades.out.sample_name.concat(assemble_rna_spades.out.sample_name)
-        contigs.merge(sample_names_ordered).set{contigs_with_sn}
-        contigs_with_sn.multiMap{t->
-            sample_name: t[1]+"_"+t[0].baseName
-            contig_file:t[0]
-            }.set{contigs_to_be_processed}
-        get_circular_contigs_cirit(contigs_to_be_processed.sample_name, contigs_to_be_processed.contig_file)
+        roadmap_9(sample_names, reads, reference_transcriptome)
 
     }
 
@@ -671,6 +665,29 @@ workflow roadmap_7{
 
 }
 
+workflow roadmap_9{
+    take:
+    sample_names
+    reads
+    reference_transcriptome
+    main:
+        assemble_rna_spades(sample_names, reads)
+        contigs=assemble_rna_spades.out.soft_filtered_transcripts.concat(assemble_rna_spades.out.hard_filtered_transcripts)
+        sample_names_ordered=assemble_rna_spades.out.sample_name.concat(assemble_rna_spades.out.sample_name)
+        contigs.merge(sample_names_ordered).set{contigs_with_sn}
+        contigs_with_sn.multiMap{t->
+            sample_name: t[1]+"_"+t[0].baseName
+            contig_file:t[0]
+            }.set{contigs_to_be_processed}
+        get_circular_contigs_cirit(contigs_to_be_processed.sample_name, contigs_to_be_processed.contig_file)
+        map_contigs_to_reference_transcriptome(get_circular_contigs_cirit.out.circular_contigs.collect(),reference_transcriptome)
+
+    emit:
+    mapped_contigs=map_contigs_to_reference_transcriptome.out.mapped_contigs
+    unmapped_contigs=map_contigs_to_reference_transcriptome.out.unmapped_contigs
+
+}
+
 workflow bulk_rna_seq{
     // Standard bulk RNA-Seq workflow for quality control, alignment, and quantification.
 
@@ -800,6 +817,7 @@ include {
     align_star;
     index_kallisto;
     map_reads_kallisto_single_cell;
+    map_contigs_to_reference_transcriptome;
         } from "./modules/alignment"
 
 include {assemble_with_megahit;

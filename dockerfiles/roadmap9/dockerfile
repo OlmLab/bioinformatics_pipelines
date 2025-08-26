@@ -2,8 +2,9 @@ FROM continuumio/anaconda3
 RUN conda config --add channels conda-forge
 RUN conda create -n spades python=3.8 bioconda::spades 
 RUN conda run -n spades conda install bioconda::java-jdk
+RUN conda run -n spades conda install -c bioconda minimap2
 ADD Cirit-1.0.jar /Cirit.jar
-RUN chmod +x /Cirit.jar
+RUN chmod +x /Cirit.jar 
 RUN echo "source activate spades" >> ~/.bashrc
 RUN conda init bash
 ENV  PATH="/opt/conda/envs/spades/bin:$PATH"
