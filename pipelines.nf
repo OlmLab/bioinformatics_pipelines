@@ -210,21 +210,20 @@ workflow {
         }
         if (params.input_type=="sra")
         {
-            table=tableToDict(file("${params.input_file}"))
+            table=tableToDict(file("${params.input_reads}"))
             get_sequences_from_sra(Channel.fromList(table["Run"]))
             sample_names=get_sequences_from_sra.out.sra_ids
             reads=get_sequences_from_sra.out.fastq_files
         }
         else if (params.input_type=="local")
         {
-            table=tableToDict(file("${params.input_file}"))
+            table=tableToDict(file("${params.input_reads}"))
             reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
             sample_names=Channel.fromList(table["sample_name"])
             
         }
-        reads=reads_1.merge(reads_2)
         samples_reads=sample_names.merge(reads)
         genomes=Channel.fromPath(tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)})
         if (params.roadmap_5_pairmode=="cross")
