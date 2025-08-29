@@ -213,7 +213,7 @@ workflow {
             table=tableToDict(file("${params.input_reads}"))
             get_sequences_from_sra(Channel.fromList(table["Run"]))
             sample_names=get_sequences_from_sra.out.sra_ids
-            reads=get_sequences_from_sra.out.fastq_files
+            reads=get_sequences_from_sra.out.fastq_files.map{t->[t]}
         }
         else if (params.input_type=="local")
         {
