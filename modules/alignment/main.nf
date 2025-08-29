@@ -238,14 +238,24 @@ process map_reads_fasta_pairs{
     val paired, emit: paired
 
     script:
-    """
-    bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
-    bowtie2 \\
-        -x ${reference_fasta} \\
-        -1 ${reads[0]} \\
+    if (paired) {
+        """
+        bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+        bowtie2 \\
+            -x ${reference_fasta} \\
+            -1 ${reads[0]} \\
         -2 ${reads[1]} \\
         --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
-    """
+    """}
+    else {
+        """
+        bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+        bowtie2 \\
+            -x ${reference_fasta} \\
+            -U ${reads[0]} \\
+            --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
+        """
+    }
 
 }
 

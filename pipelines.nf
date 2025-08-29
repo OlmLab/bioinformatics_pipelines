@@ -236,9 +236,9 @@ workflow {
         }
         inputs.multiMap{v->
             sn:v[0]
-            rd:[v[1],v[2]]
-            gn:v[3]
-            tr:true
+            rd:v[1]
+            gn:v[2]
+            tr:(v[1].size() == 2)
         }.set{ins}
         roadmap_5(ins.sn, ins.rd, ins.gn,ins.tr)
 
