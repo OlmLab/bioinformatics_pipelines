@@ -4,19 +4,16 @@ process download_files {
     * @param url: The URL of the file to download.
     * @param output_dir: The directory where the downloaded file will be saved.
     */
-    
-    publishDir "${params.output_dir}/downloaded_files", mode: 'copy'
-    
+
+    publishDir "${params.output_dir}/downloaded_files", params.publish_dir_mode
     input:
-    val url
-    val output_dir
-    
+    tuple val(url), val(name)
     output:
-    path "${output_dir}/*", emit: downloaded_files
+    path "${name}/*", emit: downloaded_files
 
     script:
     """
-    wget -P ${output_dir} ${url}
+    wget -P ${name} ${url}
     """
 }
 

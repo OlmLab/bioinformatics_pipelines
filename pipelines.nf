@@ -362,6 +362,16 @@ workflow {
         get_sequences_from_sra(Channel.fromList(table["Run"]))
 
     }
+    else if (params.roadmap_id=="download_links")
+    {
+
+        table=tableToDict(file("${params.input_file}"))
+        links=Channel.fromList(table["Links"])
+        names=Channel.fromList(table["Names"])
+        all=links.merge(names)
+        download_files(all)
+
+    }
     else if (params.roadmap_id=="scan_metagenome")
     {
 
@@ -844,7 +854,9 @@ include {tableToDict;
         concatenate_files;
         } from "./modules/files"
 
-include {get_sequences_from_sra} from "./modules/download"
+include {get_sequences_from_sra;
+         download_files;
+} from "./modules/download"
 
 include {estimate_abundance_coverm;
          estimate_abundance_metaphlan;

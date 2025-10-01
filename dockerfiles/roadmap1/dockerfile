@@ -5,10 +5,7 @@ RUN conda install bioconda::bowtie2 -y
 RUN conda install bioconda::samtools -y
 RUN conda install bioconda::megahit -y
 RUN conda install bioconda::metabat2
-RUN wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.2.0/sratoolkit.3.2.0-ubuntu64.tar.gz && \
-    tar -xzf sratoolkit.tar.gz && \
-    rm sratoolkit.tar.gz
-ENV PATH="/sratoolkit.3.2.0-ubuntu64/bin:${PATH}"
+mappe
 # RUN conda install -c conda-forge -c bioconda gtdbtk=2.4.0
 # RUN conda install coverm
 
