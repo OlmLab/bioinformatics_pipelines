@@ -29,22 +29,3 @@ As an example, the right way to test the pipelines on alpine HPC is:
 ```bash
 $ nf-test test --profile apptainer,alpine
 ```
-## Bioplumber
------
-
-Most of the roadmaps require input data in the form of CSV files. Builing such tables can take some time. You can use a tool called bioplumber to make this task easy. Bioplumber is a python package that can be installed via pip:
-
-```bash
-pip install bioplumber
-```
-
-After installing, you can run the following command to enter the textual user interface for managing your files:
-
-```bash
-file-mgr
-```
-See how this is done as an example 
-
-![bioplumber](/imgs/bioplumber.gif)
-
-- When running pipelines that process many tasks (say 1 million tasks) it is highly recommended that the main nextflow thread is executed from a node with higher memory allocation. Otherwise it might crash!
