@@ -300,7 +300,7 @@ To run this roadmap, you need to provide a CSV file containing the following col
 
 You can run the roadmap using the following command:
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_reads "<path-to-samples.csv>" -profile apptainer,alpine
+nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_file "<path-to-samples.csv>" -profile apptainer,alpine
 ```
 #### Relevant optional arguments
 --sylph_db : Path to the Sylph database. If this is not provided, the default GTDB database will be used. NOTE: you should directly provide the path to the Sylph database **file** ending in syldb.
