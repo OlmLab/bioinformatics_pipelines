@@ -27,13 +27,13 @@ a roadmap is simply a group of Nextflow workflows chained together.
 4. **Run the pipeline**: To run a pipeline, navigate to the directory containing the pipeline and execute the following command:
 
     ```bash
-    nextflow run pipelines.nf --roadmap <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer,cluster-profile> 
+    nextflow run pipelines.nf --roadmap_id <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer,cluster-profile> 
    
     ```
     If you want to run this pipeline on a cluster, after making sure that you have the necessary configuration file, you can run the pipeline using the following command:
 
     ```bash
-    nextflow run pipelines.nf --roadmap <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer,cluster-profile> 
+    nextflow run pipelines.nf --roadmap_id <roadmap-id> <roadmap-specific-arguments> -profile <local|docker|apptainer,cluster-profile> 
     ```
 
     Replace `<roadmap-id>` with the name of the pipeline you want to run with the path to your server configuration file. Each roadmap has its own set of arguments that can be passed to the pipeline. For Alpine HPC and GutBot there are ready configuration files. You can find the list of available arguments in the documentation for each [roadmap](roadmaps.md).
@@ -41,7 +41,7 @@ a roadmap is simply a group of Nextflow workflows chained together.
 or (RECOMENDED) you can skip step 2, and run the pipeline directly by using the following command:
 
 ```bash
-nextflow run OlmLab/bioinformatics_pipelines --roadmap <roadmap-id>  -profile <local|docker|apptainer,cluster-profile> <roadmap-specific-arguments>
+nextflow run OlmLab/bioinformatics_pipelines --roadmap_id <roadmap-id>  -profile <local|docker|apptainer,cluster-profile> <roadmap-specific-arguments>
 ```
 In this case, the configs will be stored in $HOME/.nextflow/assets/OlmLab/bioinformatics_pipelines/config/
 
@@ -86,7 +86,7 @@ Also you need to provide the path to the host genome. An example run with this m
     An example run with this mode looks like this:
 
     ```bash
-    nextflow run pipelines.nf --roadmap roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "sra" --input_file <path-to-csv-files> -profile apptainer,alpine
+    nextflow run pipelines.nf --roadmap_id roadmap_1 --host_genome "raw_data/ref_genome.fa" --input_type "sra" --input_file <path-to-csv-files> -profile apptainer,alpine
     ```
 
 ## roadmap_2
