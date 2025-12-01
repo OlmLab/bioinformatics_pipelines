@@ -13,7 +13,7 @@ Roadmaps are end-to-end workflows. A rule of thumb for a roadmap is to be useful
 2. **Clone the repository**: Go to an appropriate location and clone this repository to your local machine using git:
     ```bash
     cd /path/to/your/directory
-    git clone https://github.com/ParsaGhadermazi/nf-metgenomics-piplines.git
+    git clone https://github.com/OlmLab/bioinformatics_pipelines.git
     ``` 
 3. **Pick a roadmap**: Road maps are designed to perform required computations end-to-end. For a full reference, please refer to the [roadmap](roadmaps.md) markdown file.
 a roadmap is simply a group of Nextflow workflows chained together. 
