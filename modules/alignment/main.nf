@@ -173,7 +173,7 @@ process get_unmapped_reads {
     val paired
     val sample_name
     output:
-    path "${bam_file.baseName}.unmapped*fastq", emit: unmapped_reads
+    path "${bam_file.baseName}.unmapped*fastq.gz", emit: unmapped_reads
     val sample_name, emit: sample_name
     val paired, emit: paired
     script:
@@ -181,12 +181,18 @@ process get_unmapped_reads {
         """
         samtools view -b -f 12 -F 256 ${bam_file} | \
             samtools fastq -1 ${bam_file.baseName}.unmapped_1.fastq -2 ${bam_file.baseName}.unmapped_2.fastq
+        gzip ${bam_file.baseName}.unmapped_1.fastq
+        gzip ${bam_file.baseName}.unmapped_2.fastq
+        rm ${bam_file.baseName}.unmapped_1.fastq
+        rm ${bam_file.baseName}.unmapped_2.fastq
         """
     }
     else {
         """
         samtools view -b -f 4 ${bam_file} | \
             samtools fastq -f 4 > ${bam_file.baseName}.unmapped.fastq
+        gzip ${bam_file.baseName}.unmapped.fastq
+        rm ${bam_file.baseName}.unmapped.fastq
         """
     }
 }
@@ -202,20 +208,26 @@ process  get_mapped_reads{
     val paired
     val sample_name
     output:
-    tuple path("${bam_file.baseName}.mapped_1.fastq"), path("${bam_file.baseName}.mapped_2.fastq"), emit: mapped_fastq_1_2, optional: true
-    path "${bam_file.baseName}.mapped.fastq", emit: mapped_fastq,optional: true
+    tuple path("${bam_file.baseName}.mapped_1.fastq.gz"), path("${bam_file.baseName}.mapped_2.fastq.gz"), emit: mapped_fastq_1_2, optional: true
+    path "${bam_file.baseName}.mapped.fastq.gz", emit: mapped_fastq,optional: true
     val sample_name, emit: sample_name
     script:
     if (paired) {
         """
         samtools view -b -f 3 ${bam_file} | \
             samtools fastq -1 ${bam_file.baseName}.mapped_1.fastq -2 ${bam_file.baseName}.mapped_2.fastq
+        gzip ${bam_file.baseName}.mapped_1.fastq
+        gzip ${bam_file.baseName}.mapped_2.fastq
+        rm ${bam_file.baseName}.mapped_1.fastq
+        rm ${bam_file.baseName}.mapped_2.fastq
         """
     }
     else {
         """
         samtools view -b -F 4 ${bam_file} | \
             samtools fastq -1 ${bam_file.baseName}.mapped.fastq
+        gzip ${bam_file.baseName}.mapped.fastq
+        rm ${bam_file.baseName}.mapped.fastq
         """
     }
 }
