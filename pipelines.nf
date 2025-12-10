@@ -44,7 +44,7 @@ workflow {
             {
                 table=tableToDict(file("${params.input_file}"))
                 get_sequences_from_sra(Channel.fromList(table["Run"]))
-                roadmap_1(get_sequences_from_sra.out.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+                roadmap_1(get_sequences_from_sra.out.sra_ids, get_sequences_from_sra.out.fastq_files)
             }
             if (params.input_type=="local")
             {
@@ -53,7 +53,7 @@ workflow {
                 reads_2=Channel.fromPath(table["reads2"])
                 reads=reads_1.merge(reads_2)
                 sample_name=Channel.fromList(table["sample_name"])
-                roadmap_1(sample_name, reads, file(params.host_genome))
+                roadmap_1(sample_name, reads)
             }
             }
         
@@ -354,6 +354,28 @@ workflow {
         roadmap_9(sample_names, reads, reference_transcriptome)
 
     }
+    else if (params.roadmap_id=="quality_control")
+    {
+        if (!params.host_genome)
+            {
+                error "Please provide a host genome for decontamination in the QC workflow."
+            }
+            if (params.input_type=="sra")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                quality_control(get_sequences_from_sra.out.sra_ids, get_sequences_from_sra.out.fastq_files, file(params.host_genome))
+            }
+            if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_file}"))
+                reads_1=Channel.fromPath(table["reads1"])
+                reads_2=Channel.fromPath(table["reads2"])
+                reads=reads_1.merge(reads_2)
+                sample_name=Channel.fromList(table["sample_name"])
+                quality_control(sample_name, reads, file(params.host_genome))
+            }
+    }
 
     else if (params.roadmap_id=="download_samples")
     {
@@ -409,19 +431,14 @@ workflow {
 
 
 workflow roadmap_1{
-    // This roadmap takes the raw sequencing reads and performs:
-    // 1- quality control
-    // 2- assembly
-    // 3- binning.
 
     take:
     sample_name
     reads
-    host_genome
 
     main:
-    quality_control(sample_name, reads, host_genome)
-    assembly(quality_control.out.sample_name, quality_control.out.qc_reads)
+    
+    assembly(sample_name, reads)
     binning(assembly.out.sample_name, assembly.out.sorted_bams, assembly.out.contigs,assembly.out.reads)
     emit:
     metabat2_bins=binning.out.metabat2_bins
