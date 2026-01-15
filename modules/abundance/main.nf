@@ -140,6 +140,7 @@ process classify_kraken2{
     }   
 }
 
+
 process estimate_abundance_bracken{
     /*
     * This process estimates the abundance of bins using Bracken. It takes in the Kraken2 report and outputs the abundance estimates.

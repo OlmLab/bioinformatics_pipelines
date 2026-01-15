@@ -5,7 +5,6 @@ RUN conda install bioconda::bowtie2 -y
 RUN conda install bioconda::samtools -y
 RUN conda install bioconda::megahit -y
 RUN conda install bioconda::metabat2
-mappe
 # RUN conda install -c conda-forge -c bioconda gtdbtk=2.4.0
 # RUN conda install coverm
 

@@ -35,3 +35,49 @@ process download_gtdbtk_db {
     rm gtdbtk_data.tar.gz
     """
 }
+
+process classify_kraken2_contigs{ 
+    publishDir "${params.output_dir}/kraken2/${sample_name}", mode: 'copy'
+    input:
+    val sample_name
+    path contigs_fasta
+    path kraken2_db
+    output:
+    val sample_name, emit: sample_name
+    path "${sample_name}_kraken2_report.txt", emit: kraken_report
+    script:
+    {
+    """
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} --input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --output /dev/null  
+    """
+    }
+ 
+}
+
+process download_eggnog_db {
+    publishDir "${params.output_dir}/eggnog_db", mode: 'copy'
+    output:
+    path "eggnog_data", emit: eggnog_db
+    script:
+    """
+    download_eggnog_data.py --data_dir eggnog_data -H -d 2
+    """
+}
+
+process eggnog_annotation {
+    /*
+    * This process annotates the input contigs using eggNOG-mapper.
+    */
+    publishDir "${params.output_dir}/eggnog_annotation", mode: 'copy'
+    input:
+    path genes_fasta
+    path eggnog_data_dir
+
+    output:
+    path "${genes_fasta.baseName}_eggnog_annotation", emit: eggnog_annotation
+
+    script:
+    """
+    emapper.py -i ${genes_fasta} --itype CDS -m hmmer --output_dir ${genes_fasta.baseName}_eggnog_annotation --cpu ${task.cpus} --data_dir ${eggnog_data_dir}
+    """
+}

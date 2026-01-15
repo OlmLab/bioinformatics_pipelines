@@ -30,6 +30,11 @@ params.exclude_metaphlan=false
 params.exclude_sylph=false
 params.exclude_humann=false
 params.scan_genome_batch_size=10
+
+
+// mmseqs2 parameters
+params.mmseqs_linclust_identity = 0.95
+params.mmseqs_linclust_coverage = 0.8
 // ###### MAIN WORKFLOW ###### //
 workflow {
     if (params.roadmap_id=="roadmap_1")
@@ -375,6 +380,21 @@ workflow {
                 sample_name=Channel.fromList(table["sample_name"])
                 quality_control(sample_name, reads, file(params.host_genome))
             }
+    }
+    else if (params.roadmap_id=="annotate_contigs")
+    {
+        if (!params.input_contigs)
+        {
+            error "Please provide the contigs information using the input_contigs parameter."
+        }
+        if (!params.input_sample_names)
+        {
+            error "Please provide the sample names information using the input_sample_names parameter."
+        }
+        table=tableToDict(file("${params.input_sample_names}"))
+        sample_names=Channel.fromList(table["sample_name"])
+        contigs=Channel.fromList(table["contig_files"].collect{t->file(t)})
+        annotate_contigs(sample_names, contigs)
     }
 
     else if (params.roadmap_id=="download_samples")
@@ -836,7 +856,63 @@ workflow test_customized_compared{
 }
 
 
+workflow annotate_contigs{
+    take:
+    sample_names
+    contigs
+    main:
+    find_genes_prodigal(contigs)
+    if (params.kraken2_db)
+        {
+            kraken2_db=file(params.kraken2_db)
+        }
+        else
+        {
+            kraken2_db=download_kraken2_db(params.kraken2_db_link)
+        }
+    classify_kraken2_contigs(sample_names, contigs, kraken2_db)
 
+    if (params.build_gene_db_mode=="nucleotide")
+    {
+        concatenate_files(find_genes_prodigal.out.genes_fna.collect(), "all_genes.fna")
+    }
+    else if (params.build_gene_db_mode=="amino_acid")
+    {
+        concatenate_files(find_genes_prodigal.out.genes_faa.collect(), "all_genes.faa")
+    }
+    else
+    {
+        error "Please provide a valid build_gene_db_mode parameter: nucleotide or amino_acid."
+    }
+    if (!params.skip_mmseqs_clustering)
+    {
+        create_mmseqs_db(concatenate_files.out.concatenated_file)
+        mmseqs_linclust(concatenate_files.out.concatenated_file, create_mmseqs_db.out.seq_db)
+    }
+    if (!params.skip_functional_annotation)
+    {
+        if (params.eggnog_data_dir)
+        {
+            egg_db=file(params.eggnog_data_dir)
+        }
+        else
+        {
+            download_eggnog_db()
+            egg_db=download_eggnog_db.out.eggnog_data_dir
+        }
+        if (!params.skip_mmseqs_clustering)
+        {
+            eggnog_annotation(mmseqs_linclust.out.representative_sequences, egg_db)
+        }
+        else
+        {
+            eggnog_annotation(concatenate_files.out.concatenated_file, egg_db)
+        }
+    }
+
+
+
+}
 
 // Include modules
 
@@ -910,4 +986,12 @@ include {
 
 include {assign_taxonomy_gtdb_tk;
         download_gtdbtk_db;
+        classify_kraken2_contigs;
+        eggnog_annotation;
+        download_eggnog_db
         } from './modules/annotation'
+
+include {
+ create_mmseqs_db;
+ mmseqs_linclust;
+} from './modules/cluster'

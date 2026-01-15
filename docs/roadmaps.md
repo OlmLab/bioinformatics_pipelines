@@ -15,6 +15,7 @@
   - [roadmap_6](#roadmap_6)
   - [roadmap_7](#roadmap_7)
   - [roadmap_9](#roadmap_9)
+  - [annotate_contigs](#annotate_contigs)
 
 ------
 
@@ -78,6 +79,25 @@ clusters including Alpine HPC, GutBot, Blanca.
 - `-resume`: Resume the pipeline from the last completed task. This is useful if the pipeline was interrupted or if you want to re-run only a subset of tasks.
 
 ## Roadmaps
+
+The following table summerizes the available roadmaps in this repository:
+
+| Roadmap ID        | Description                                                  | inputs | Outputs |
+|-------------------|--------------------------------------------------------------|--------|---------|
+| quality_control   | Quality control of raw sequencing data using fastp and host decontamination. | raw reads or SRA accession IDs, host genome | quality-controlled reads and QC stats|
+| roadmap_1        | Metagenomics analysis using de novo assembly and binning.     | quality-controlled reads or raw reads/SRA IDs, host genome | metagenome-assembled genomes (MAGs) |
+| roadmap_2        | Strain-level analysis using inStrain.                        | reads or BAM files, genomes or stb file, genome database | inStrain profiles and comparisons |
+| roadmap_3        | Dereplication of genomes using dRep.                         | genomes | dereplicated genomes |
+| roadmap_1_3_2    | End-to-end analysis: bin extraction, dereplication, strain-level analysis. | raw reads or SRA IDs, host genome | dereplicated genomes, inStrain profiles, comparisons |
+| roadmap_4        | Quality control and host decontamination of raw sequencing data. | raw reads or SRA IDs, host genome | quality-controlled reads |
+| roadmap_3_2      | Dereplication of genomes followed by strain-level analysis.   | reads or BAM files, genomes | dereplicated genomes, inStrain profiles and comparisons |
+| roadmap_5        | Mapping reads to reference genomes.                          | reads, genomes | mapped reads (BAM files) |
+| roadmap_6        | Metagenomics analysis using reference-based approach.        | QCed reads | taxonomic and functional profiles |
+| roadmap_7        | Taxonomic and functional annotation of genomes.              | genomes | annotated genomes |
+| roadmap_9        | Detection of circular RNA contigs from RNA-Seq data.         | RNA-Seq reads, reference transcriptome | circular RNA contigs and mappings |
+| annotate_contigs | Taxonomic and functional annotation of contigs.              | contigs | annotated contigs |
+
+------
 
 ### quality_control
 
@@ -569,3 +589,45 @@ An example run with this mode looks like this:
 ```bash
 nextflow run pipelines.nf --roadmap roadmap_9 --reference_transcriptome <path-to-reference-transcriptome> --input_type "sra" --input_file <path-to-csv-files> -profile apptainer,alpine
 ```
+
+------
+
+### annotate_contigs
+
+#### Description
+
+This roadmap is designed to perform taxonomic and functional annotation of contigs and the genes identified on them. The workflow starts with the following steps:
+
+1. Finding genes on the contigs using Prodigal.
+2. Assining taxonomy to the contigs using Kraken2.
+3. concatenating all the genes from all the samples into one fasta file.
+4. (Optional) Clustering the genes using MMseqs2 linclust to reduce redundancy.
+5. Annotating the genes using eggNOG-mapper. If clustering is performed, the representative sequences are annotated. Otherwise, all the genes are annotated.
+
+![annotate_contigs](../imgs/dag-annotate_contigs.svg)
+
+#### How to run
+To run this roadmap, you need to provide a CSV file containing the following columns:
+
+- sample_name
+- contigs (path to the contig fasta file for each sample)
+
+You can run the roadmap using the following command:
+
+```bash
+nextflow run pipelines.nf --roadmap_id "annotate_contigs" --input_contigs "<path-to-samples.csv>" -profile apptainer,alpine
+```
+
+##### Relevant optional arguments
+
+- **--skip_mmseqs_clustering**: By default, the genes are clustered using MMseqs2 linclust to reduce redundancy before annotation. If you want to skip this step and annotate all the genes, you can provide this argument.
+
+- **--mmseqs_linclust_identity**: If clustering is performed, this argument specifies the sequence identity threshold for clustering. Default is 0.95 (95% identity).
+
+- **--build_gene_db_mode**: This argument specifies the mode for building the gene database. It can be either "amino_acid" or "nucleotide". Default is "nucleotide".
+
+- **--skip_functional_annotation**: If you want to skip the functional annotation step with eggNOG-mapper, you can provide this argument.
+
+- **--mmseqs_linclust_coverage**: If clustering is performed, this argument specifies the coverage threshold for clustering. Default is 0.8 (80% coverage). Note that the pipeline is fixed to use coverage mode 1 in mmseqs2 (target coverage).
+
+**NOTES** If provide --skip_mmseqs_clustering, and not --skip_functional_annotation, all the genes from all contigs will be annotated using eggNOG-mapper.
