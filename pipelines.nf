@@ -1,3 +1,4 @@
+nextflow.enable.dsl = 2
 params.output_dir = "./output"
 params.paired = false
 params.host_indexed = false
@@ -36,6 +37,7 @@ params.scan_genome_batch_size=10
 params.mmseqs_linclust_identity = 0.95
 params.mmseqs_linclust_coverage = 0.8
 // ###### MAIN WORKFLOW ###### //
+params.build_gene_db_mode="nucleotide" 
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {
@@ -387,11 +389,7 @@ workflow {
         {
             error "Please provide the contigs information using the input_contigs parameter."
         }
-        if (!params.input_sample_names)
-        {
-            error "Please provide the sample names information using the input_sample_names parameter."
-        }
-        table=tableToDict(file("${params.input_sample_names}"))
+        table=tableToDict(file("${params.input_contigs}"))
         sample_names=Channel.fromList(table["sample_name"])
         contigs=Channel.fromList(table["contig_files"].collect{t->file(t)})
         annotate_contigs(sample_names, contigs)
@@ -425,18 +423,6 @@ workflow {
 
     }
     
-    else if (params.roadmap_id=="roadmap_dev")
-    {
-
-
-        table=tableToDict(params.input_profiles)
-        profile1=Channel.fromPath(table["profile1"].collect{t->file(t)})
-        profile2=Channel.fromPath(table["profile2"].collect{t->file(t)})
-        profile_pairs=profile1.merge(profile2)
-        stb_file=file(params.stb_file)
-        test_customized_compared(profile_pairs,stb_file)
-
-    }
     else
         {
             error "Please provide a valid roadmap_id."
@@ -873,22 +859,21 @@ workflow annotate_contigs{
     classify_kraken2_contigs(sample_names, contigs, kraken2_db)
 
     if (params.build_gene_db_mode=="nucleotide")
-    {
+        {
         concatenate_files(find_genes_prodigal.out.genes_fna.collect(), "all_genes.fna")
-    }
+        }
     else if (params.build_gene_db_mode=="amino_acid")
-    {
+        {
         concatenate_files(find_genes_prodigal.out.genes_faa.collect(), "all_genes.faa")
-    }
+        }
     else
     {
         error "Please provide a valid build_gene_db_mode parameter: nucleotide or amino_acid."
     }
     if (!params.skip_mmseqs_clustering)
-    {
-        create_mmseqs_db(concatenate_files.out.concatenated_file)
-        mmseqs_linclust(concatenate_files.out.concatenated_file, create_mmseqs_db.out.seq_db)
-    }
+        {
+        mmseqs_linclust(concatenate_files.out.concatenated_file)
+        }
     if (!params.skip_functional_annotation)
     {
         if (params.eggnog_data_dir)
@@ -898,21 +883,22 @@ workflow annotate_contigs{
         else
         {
             download_eggnog_db()
-            egg_db=download_eggnog_db.out.eggnog_data_dir
+            egg_db=download_eggnog_db.out.eggnog_db
         }
         if (!params.skip_mmseqs_clustering)
         {
-            eggnog_annotation(mmseqs_linclust.out.representative_sequences, egg_db)
+            eggnog_annotation(mmseqs_linclust.out.clustered_sequences, egg_db)
         }
         else
         {
             eggnog_annotation(concatenate_files.out.concatenated_file, egg_db)
         }
     }
-
-
-
 }
+
+
+
+
 
 // Include modules
 

@@ -44,23 +44,24 @@ process classify_kraken2_contigs{
     path kraken2_db
     output:
     val sample_name, emit: sample_name
-    path "${sample_name}_kraken2_report.txt", emit: kraken_report
+    path "${sample_name}_kraken2_*.txt", emit: kraken_report
     script:
     {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --output /dev/null  
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --output ${sample_name}_kraken2_output.txt  
     """
     }
  
 }
 
 process download_eggnog_db {
-    publishDir "${params.output_dir}/eggnog_db", mode: 'copy'
+    publishDir "${params.output_dir}/eggnog_db", mode: 'link'
     output:
     path "eggnog_data", emit: eggnog_db
     script:
     """
-    download_eggnog_data.py --data_dir eggnog_data -H -d 2
+    mkdir eggnog_data
+    download_eggnog_data.py --data_dir eggnog_data -H -d 2 -y
     """
 }
 

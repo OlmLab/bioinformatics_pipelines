@@ -28,15 +28,20 @@ process mmseqs_linclust{
     
     input:
     path input_fasta
-    path seq_db
 
     output:
-    path "${input_fasta.fileName}_representative_${params.mmseqs_linclust_identity}.fasta", emit: clustered_sequences
+    path "${input_fasta.fileName}_${params.mmseqs_linclust_identity}_rep_seq.fasta", emit: clustered_sequences
 
     script:
     """
-    mmseqs linclust ${seq_db} clustered_db tmp --min-seq-id ${params.mmseqs_linclust_identity} -c ${params.mmseqs_linclust_coverage} --cov-mode 1 --threads ${task.cpus}
-    mmseqs createsubdb clustered_db ${seq_db} clustered_db_rep
-    mmseqs convert2fasta clustered_db_rep ${input_fasta.fileName}_representative_${params.mmseqs_linclust_identity}.fasta
+    mmseqs easy-linclust \
+    ${input_fasta} \
+    ${input_fasta.fileName}_${params.mmseqs_linclust_identity} \
+    tmp \
+    --min-seq-id ${params.mmseqs_linclust_identity} \
+    -c ${params.mmseqs_linclust_coverage} \
+    --cov-mode 1 \
+    --threads ${task.cpus}
+
     """
 }

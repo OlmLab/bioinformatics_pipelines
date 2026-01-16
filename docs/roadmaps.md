@@ -611,7 +611,7 @@ This roadmap is designed to perform taxonomic and functional annotation of conti
 To run this roadmap, you need to provide a CSV file containing the following columns:
 
 - sample_name
-- contigs (path to the contig fasta file for each sample)
+- contig_files (path to the contig fasta file for each sample)
 
 You can run the roadmap using the following command:
 
@@ -630,5 +630,7 @@ nextflow run pipelines.nf --roadmap_id "annotate_contigs" --input_contigs "<path
 - **--skip_functional_annotation**: If you want to skip the functional annotation step with eggNOG-mapper, you can provide this argument.
 
 - **--mmseqs_linclust_coverage**: If clustering is performed, this argument specifies the coverage threshold for clustering. Default is 0.8 (80% coverage). Note that the pipeline is fixed to use coverage mode 1 in mmseqs2 (target coverage).
+
+- **--kraken2_db**: Path to the KRAKEN2 database. If this is not provided, the standard KRAKEN2 database will be downloaded. NOTE: you should provide the **directory** containing the KRAKEN2 database files
 
 **NOTES** If provide --skip_mmseqs_clustering, and not --skip_functional_annotation, all the genes from all contigs will be annotated using eggNOG-mapper.
