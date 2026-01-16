@@ -866,7 +866,7 @@ workflow annotate_contigs{
         {
             kraken2_db=file(params.kraken2_db)
         }
-        else
+    else
         {
             kraken2_db=download_kraken2_db(params.kraken2_db_link)
         }

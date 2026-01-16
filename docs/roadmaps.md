@@ -607,6 +607,7 @@ This roadmap is designed to perform taxonomic and functional annotation of conti
 ![annotate_contigs](../imgs/dag-annotate_contigs.svg)
 
 #### How to run
+    
 To run this roadmap, you need to provide a CSV file containing the following columns:
 
 - sample_name
