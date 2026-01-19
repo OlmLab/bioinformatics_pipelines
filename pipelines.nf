@@ -38,6 +38,7 @@ params.mmseqs_linclust_identity = 0.95
 params.mmseqs_linclust_coverage = 0.8
 // ###### MAIN WORKFLOW ###### //
 params.build_gene_db_mode="nucleotide" 
+params.eggnog_db_taxonomic_scope="2"
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {

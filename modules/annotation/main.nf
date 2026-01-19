@@ -61,7 +61,7 @@ process download_eggnog_db {
     script:
     """
     mkdir eggnog_data
-    download_eggnog_data.py --data_dir eggnog_data -H -d 2 -y
+    download_eggnog_data.py --data_dir eggnog_data -H -d ${params.eggnog_db_taxonomic_scope} -y
     """
 }
 
@@ -79,6 +79,7 @@ process eggnog_annotation {
 
     script:
     """
-    emapper.py -i ${genes_fasta} --itype CDS -m hmmer --output_dir ${genes_fasta.baseName}_eggnog_annotation --cpu ${task.cpus} --data_dir ${eggnog_data_dir}
+    mkdir ${genes_fasta.baseName}_eggnog_annotation
+    emapper.py -i ${genes_fasta} --itype CDS --translate  --output_dir ${genes_fasta.baseName}_eggnog_annotation -o ${genes_fasta.baseName}_eggnog_annotation --cpu ${task.cpus} --data_dir ${eggnog_data_dir} -d ${params.eggnog_db_taxonomic_scope}
     """
 }
