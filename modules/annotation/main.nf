@@ -83,3 +83,40 @@ process eggnog_annotation {
     emapper.py -i ${genes_fasta} --itype CDS --translate  --output_dir ${genes_fasta.baseName}_eggnog_annotation -o ${genes_fasta.baseName}_eggnog_annotation --cpu ${task.cpus} --data_dir ${eggnog_data_dir} -d ${params.eggnog_db_taxonomic_scope}
     """
 }
+
+
+process download_genomad_db {
+    /*
+    * This process downloads the Genomad database from a given URL and extracts it.
+    * @param url: The URL of the Genomad database to download.
+    */
+    
+    publishDir "${params.output_dir}/"
+    output:
+    path "genomad_db", emit: genomad_db
+    
+    script:
+    """
+    genomad download-database .
+    """
+}
+
+process annotate_contig_genomad{
+    /*
+    * This process annotates contigs using Genomad.
+    */
+    publishDir "${params.output_dir}/genomad_annotation"
+    input:
+    val sample_name
+    path contigs_fasta
+    path genomad_db
+    
+
+    output:
+    path "${sample_name}_genomad_annotation", emit: genomad_annotation
+
+    script:
+    """
+    mkdir ${sample_name}_genomad_annotation
+    genomad end-to-end --cleanup --splits 8 ${contigs_fasta} ${sample_name}_genomad_annotation ${genomad_db}"""
+}

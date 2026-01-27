@@ -1,6 +1,11 @@
-FROM continuumio/anaconda3
-RUN conda config --add channels conda-forge
-RUN conda install -c bioconda -c conda-forge eggnog-mapper
+FROM condaforge/miniforge3
 
+RUN mamba create -n bioinfo -c bioconda -c conda-forge \
+    eggnog-mapper \
+    genomad \
+    -y && \
+    mamba clean -afy
 
-
+RUN echo "source activate bioinfo" >> ~/.bashrc
+RUN conda init bash
+ENV  PATH="/opt/conda/envs/bioinfo/bin:$PATH"

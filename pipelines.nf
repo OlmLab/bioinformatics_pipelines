@@ -1,4 +1,7 @@
+
 nextflow.enable.dsl = 2
+
+params.single_end = false
 params.output_dir = "./output"
 params.paired = false
 params.host_indexed = false
@@ -42,11 +45,6 @@ params.eggnog_db_taxonomic_scope="2"
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {
-        if (!params.host_genome)
-            {
-                error "Please provide a host genome for decontamination in the roadmap_1 workflow."
-            }
-
 
             if (params.input_type=="sra")
             {
@@ -57,9 +55,17 @@ workflow {
             if (params.input_type=="local")
             {
                 table=tableToDict(file("${params.input_file}"))
+                if (!params.single_end)
+                {
                 reads_1=Channel.fromPath(table["reads1"])
                 reads_2=Channel.fromPath(table["reads2"])
-                reads=reads_1.merge(reads_2)
+                reads=reads_1.merge(reads_2)  
+                }
+                else
+                {
+                reads=Channel.fromPath(table["reads"].collect{t->file(t)})
+                }
+
                 sample_name=Channel.fromList(table["sample_name"])
                 roadmap_1(sample_name, reads)
             }
@@ -895,6 +901,20 @@ workflow annotate_contigs{
             eggnog_annotation(concatenate_files.out.concatenated_file, egg_db)
         }
     }
+    if (!params.skip_genomad_annotation)
+    {
+        if (params.genomad_db)
+        {
+            genomad_db=file(params.genomad_db)
+        }
+        else
+        {
+            download_genomad_db()
+            genomad_db=download_genomad_db.out.genomad_db
+        }
+        annotate_contig_genomad(sample_names, contigs, genomad_db)
+    }
+    
 }
 
 
@@ -975,7 +995,9 @@ include {assign_taxonomy_gtdb_tk;
         download_gtdbtk_db;
         classify_kraken2_contigs;
         eggnog_annotation;
-        download_eggnog_db
+        download_eggnog_db;
+        download_genomad_db;
+        annotate_contig_genomad;
         } from './modules/annotation'
 
 include {

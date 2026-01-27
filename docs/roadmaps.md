@@ -599,7 +599,7 @@ nextflow run pipelines.nf --roadmap roadmap_9 --reference_transcriptome <path-to
 This roadmap is designed to perform taxonomic and functional annotation of contigs and the genes identified on them. The workflow starts with the following steps:
 
 1. Finding genes on the contigs using Prodigal.
-2. Assining taxonomy to the contigs using Kraken2.
+2. Assining taxonomy to the contigs using Kraken2 as well as genomead for virus and plasmid detection.
 3. concatenating all the genes from all the samples into one fasta file.
 4. (Optional) Clustering the genes using MMseqs2 linclust to reduce redundancy.
 5. Annotating the genes using eggNOG-mapper. If clustering is performed, the representative sequences are annotated. Otherwise, all the genes are annotated.
@@ -632,5 +632,9 @@ nextflow run pipelines.nf --roadmap_id "annotate_contigs" --input_contigs "<path
 - **--mmseqs_linclust_coverage**: If clustering is performed, this argument specifies the coverage threshold for clustering. Default is 0.8 (80% coverage). Note that the pipeline is fixed to use coverage mode 1 in mmseqs2 (target coverage).
 
 - **--kraken2_db**: Path to the KRAKEN2 database. If this is not provided, the standard KRAKEN2 database will be downloaded. NOTE: you should provide the **directory** containing the KRAKEN2 database files
+
+- **--genomad_db**: Path to the Genomad database. If this is not provided, the default Genomad database will be downloaded. NOTE: you should provide the **directory** containing the Genomad database files
+
+- **--skip_genomad_annotation**: If you want to skip the Genomad annotation step, you can provide this argument.
 
 **NOTES** If provide --skip_mmseqs_clustering, and not --skip_functional_annotation, all the genes from all contigs will be annotated using eggNOG-mapper.
