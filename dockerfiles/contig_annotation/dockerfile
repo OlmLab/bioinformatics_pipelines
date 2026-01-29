@@ -6,6 +6,8 @@ RUN mamba create -n bioinfo -c bioconda -c conda-forge \
     -y && \
     mamba clean -afy
 
+RUN mamba run -n bioinfo pip install --upgrade tensorflow keras
+
 RUN echo "source activate bioinfo" >> ~/.bashrc
 RUN conda init bash
 ENV  PATH="/opt/conda/envs/bioinfo/bin:$PATH"
