@@ -1,21 +1,52 @@
 FROM continuumio/anaconda3
-RUN conda config --add channels conda-forge
-RUN conda create -n roadmap6 python=3.10
-RUN conda run -n roadmap6 conda install -c bioconda metaphlan
-RUN conda run -n roadmap6 conda install  -c bioconda sylph
-RUN wget https://raw.githubusercontent.com/biobakery/MetaPhlAn/refs/heads/master/metaphlan/utils/calculate_diversity.R
-RUN chmod +x calculate_diversity.R
-RUN mv calculate_diversity.R /opt/conda/envs/roadmap6/bin/
-RUN conda run -n roadmap6 pip install humann
-RUN conda run -n roadmap6 conda install -c bioconda kraken2
-RUN conda run -n roadmap6 conda install -c bioconda bracken
-RUN conda run -n roadmap6 conda install parallel
-RUN wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.2.0/sratoolkit.3.2.0-ubuntu64.tar.gz && \
-    tar -xzf sratoolkit.tar.gz && \
-    rm sratoolkit.tar.gz
-ENV PATH="/sratoolkit.3.2.0-ubuntu64/bin:${PATH}"
+
+# Install mamba (fast solver)
+RUN conda install -y -n base -c conda-forge mamba && \
+    conda clean -afy
+
+# Channels (order matters)
+RUN conda config --add channels conda-forge && \
+    conda config --add channels bioconda
+
+# Create env
+RUN mamba create -y -n roadmap6 python=3.10
+
+# Core bioconda tools
+RUN mamba install -y -n roadmap6 \
+    metaphlan \
+    sylph \
+    kraken2 \
+    bracken \
+    parallel
+
+RUN /opt/conda/envs/roadmap6/bin/pip install humann
+
+# MetaPhlAn utility
+RUN wget https://raw.githubusercontent.com/biobakery/MetaPhlAn/refs/heads/master/metaphlan/utils/calculate_diversity.R && \
+    chmod +x calculate_diversity.R && \
+    mv calculate_diversity.R /opt/conda/envs/roadmap6/bin/
+
+RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.2.0/sratoolkit.3.2.0-ubuntu64.tar.gz && \
+    tar -xzf sratoolkit.3.2.0-ubuntu64.tar.gz && \
+    rm sratoolkit.3.2.0-ubuntu64.tar.gz
+
+
+RUN git clone https://github.com/allind/EukDetect.git /opt/EukDetect
+WORKDIR /opt/EukDetect
+
+RUN mamba install -y -n roadmap6 \
+    samtools \
+    bowtie2 \
+    pysam \
+    bedtools \
+    blast
+
+
+RUN /opt/conda/envs/roadmap6/bin/python setup.py install
+
+ENV PATH="/sratoolkit.3.2.0-ubuntu64/bin:/opt/conda/envs/roadmap6/bin:${PATH}"
 RUN echo "source activate roadmap6" >> ~/.bashrc
 RUN conda init bash
-ENV PATH="/opt/conda/envs/roadmap6/bin:$PATH"
-
-
+ENV  PATH="/opt/conda/envs/roadmap6/bin:$PATH"
+ADD buildconf.py /usr/local/bin/ 
+RUN chmod +x  /usr/local/bin/buildconf.py

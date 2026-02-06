@@ -696,6 +696,18 @@ workflow roadmap_6{
         }
         profile_humann(sample_name, reads, humann_chocophlan, humann_uniref90, metaphlan_db)    
     }
+    if (!params.exclude_eukdetect)
+    {
+        if (params.eukdetect_db)
+        {
+            eukdetect_db=file(params.eukdetect_db)
+        }
+        else
+        {
+            error "Please provide a database for EukDetect. This is required for EukDetect to run."
+        }
+        eukdetect(sample_name, reads, eukdetect_db)
+    }
 }
 
 workflow roadmap_7{
@@ -971,6 +983,7 @@ include {estimate_abundance_coverm;
             gene_count_featurecounts;
             sylphScanBatchFromSRA;
             buildSylphdb;
+            eukdetect;
 
          } from './modules/abundance'
 

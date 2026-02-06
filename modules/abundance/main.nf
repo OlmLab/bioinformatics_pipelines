@@ -239,3 +239,26 @@ process sylphScanBatchFromSRA{
     fi'
     """
     }
+
+process eukdetect{
+    publishDir "${params.output_dir}/eukdetect/${sample_name}", mode: 'copy'
+    input:
+    val sample_name
+    path reads
+    path eukdetect_db
+    output:
+    path "${sample_name}", emit: eukdetect_profile
+    script:
+    if (reads.size() == 2) {
+    """
+    buildconf.py --read1 ${reads[0]} --read2 ${reads[1]} --output-dir ${sample_name}  --db-path ${eukdetect_db} --eukdetect-dir /EukDetect/  --config-out ${sample_name}.conf --sample-name ${sample_name}
+    eukdetect --mode runall --configfile ${sample_name}.conf --cores ${task.cpus} --output ${sample_name}
+    """
+    }
+    else{
+    """
+    buildconf.py --read1 ${reads[0]}  --output-dir ${sample_name}  --db-path ${eukdetect_db} --eukdetect-dir /EukDetect/  --config-out ${sample_name}.conf --sample-name ${sample_name}
+    eukdetect --mode runall --configfile ${sample_name}.conf --cores ${task.cpus} --output ${sample_name}
+    """
+    }
+}
