@@ -743,7 +743,7 @@ workflow roadmap_9{
             contig_file:t[0]
             }.set{contigs_to_be_processed}
         get_circular_contigs_cirit(contigs_to_be_processed.sample_name, contigs_to_be_processed.contig_file)
-        map_contigs_to_reference_transcriptome(get_circular_contigs_cirit.out.circular_contigs.collect(),reference_transcriptome)
+        map_rna_assemblies_to_reference_genome(get_circular_contigs_cirit.out.circular_contigs.collect(),reference_transcriptome)
 
     emit:
     mapped_contigs=map_contigs_to_reference_transcriptome.out.mapped_contigs
@@ -951,6 +951,7 @@ include {
     index_kallisto;
     map_reads_kallisto_single_cell;
     map_contigs_to_reference_transcriptome;
+    map_rna_assemblies_to_reference_genome;
         } from "./modules/alignment"
 
 include {assemble_with_megahit;

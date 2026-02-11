@@ -48,7 +48,7 @@ process classify_kraken2_contigs{
     script:
     {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --output ${sample_name}_kraken2_output.txt  
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --use-names --output ${sample_name}_kraken2_output.txt  
     """
     }
  

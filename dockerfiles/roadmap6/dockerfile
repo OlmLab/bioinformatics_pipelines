@@ -50,3 +50,4 @@ RUN conda init bash
 ENV  PATH="/opt/conda/envs/roadmap6/bin:$PATH"
 ADD buildconf.py /usr/local/bin/ 
 RUN chmod +x  /usr/local/bin/buildconf.py
+RUN mamba install -y -n roadmap6 snakemake

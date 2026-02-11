@@ -380,3 +380,26 @@ process map_contigs_to_reference_transcriptome{
     samtools view -bS -F 4 aln.sorted.bam | samtools fasta - > mapped_contigs.fasta
     """
 }
+process map_rna_assemblies_to_reference_genome{
+    /*
+    * This process maps the input FASTQ files to the reference transcriptome using Kallisto. The output
+    * is a BAM file containing the aligned reads.
+    */
+    publishDir "${params.output_dir}/minimap_genome_alignment/", mode: 'link'
+
+    input:
+    path contigs
+    path genome_fasta
+
+    output:
+    path "mapped_contigs.fasta", emit: mapped_contigs
+    path "unmapped_contigs.fasta", emit: unmapped_contigs
+
+    script:
+    """
+    cat ${contigs.join(" ")} > all_contigs.fasta
+    minimap2 -ax splice ${genome_fasta} all_contigs.fasta | samtools view -bS - | samtools sort -o aln.sorted.bam
+    samtools view -bS -f 4 aln.sorted.bam |samtools fasta - > unmapped_contigs.fasta
+    samtools view -bS -F 4 aln.sorted.bam | samtools fasta - > mapped_contigs.fasta
+    """
+}
