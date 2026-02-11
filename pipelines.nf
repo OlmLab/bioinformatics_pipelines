@@ -355,17 +355,24 @@ workflow {
         {
             table=tableToDict(file("${params.input_file}"))
             reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            if (params.paired_end)
+            {
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
+            }
+            else{
+                reads_1.set{reads}
+            }
+
             sample_names=Channel.fromList(table["sample_name"])
-            reference_transcriptome=file(params.reference_transcriptome)
+            reference_genome=file(params.reference_genome)
 
         }
         else
         {
             error "Please provide the reads information using the file parameter."
         }
-        roadmap_9(sample_names, reads, reference_transcriptome)
+        roadmap_9(sample_names, reads, reference_genome)
 
     }
     else if (params.roadmap_id=="quality_control")
@@ -732,7 +739,7 @@ workflow roadmap_9{
     take:
     sample_names
     reads
-    reference_transcriptome
+    reference_genome
     main:
         assemble_rna_spades(sample_names, reads)
         contigs=assemble_rna_spades.out.soft_filtered_transcripts.concat(assemble_rna_spades.out.hard_filtered_transcripts)
@@ -743,11 +750,11 @@ workflow roadmap_9{
             contig_file:t[0]
             }.set{contigs_to_be_processed}
         get_circular_contigs_cirit(contigs_to_be_processed.sample_name, contigs_to_be_processed.contig_file)
-        map_rna_assemblies_to_reference_genome(get_circular_contigs_cirit.out.circular_contigs.collect(),reference_transcriptome)
+        map_rna_assemblies_to_reference_genome(get_circular_contigs_cirit.out.circular_contigs.collect(),reference_genome)
 
     emit:
-    mapped_contigs=map_contigs_to_reference_transcriptome.out.mapped_contigs
-    unmapped_contigs=map_contigs_to_reference_transcriptome.out.unmapped_contigs
+    mapped_contigs=map_rna_assemblies_to_reference_genome.out.mapped_contigs
+    unmapped_contigs=map_rna_assemblies_to_reference_genome.out.unmapped_contigs
 
 }
 
