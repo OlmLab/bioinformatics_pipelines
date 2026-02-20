@@ -38,6 +38,8 @@ process align_bowtie2 {
     val sample_name, emit: sample_name
     path reads, emit: reads
     script:
+    def competitiveness= (params.bowtie2_non_competitive_mapping) ? "-a" : ""
+
     if (reads.size() == 2) {
         paired=true
         """
@@ -46,6 +48,7 @@ process align_bowtie2 {
             -1 ${reads[0]} \\
             -2 ${reads[1]} \\
             -S ${sample_name}_bowtie2.sam \\
+            ${competitiveness} \\
             --threads ${task.cpus} \\
         """
         
@@ -57,6 +60,7 @@ process align_bowtie2 {
             -x ${reference_genome} \\
             -U ${reads[0]} \\
             -S ${sample_name}_bowtie2.sam \\
+            ${competitiveness} \\
             --threads ${task.cpus} \\
         """
     }
@@ -250,6 +254,7 @@ process map_reads_fasta_pairs{
     val paired, emit: paired
 
     script:
+    competitiveness= (params.bowtie2_non_competitive_mapping) ? "-a" : ""
     if (paired) {
         """
         bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
@@ -257,6 +262,7 @@ process map_reads_fasta_pairs{
             -x ${reference_fasta} \\
             -1 ${reads[0]} \\
         -2 ${reads[1]} \\
+        ${competitiveness} \\
         --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
     """}
     else {
@@ -265,6 +271,7 @@ process map_reads_fasta_pairs{
         bowtie2 \\
             -x ${reference_fasta} \\
             -U ${reads[0]} \\
+        ${competitiveness} \\
             --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
         """
     }

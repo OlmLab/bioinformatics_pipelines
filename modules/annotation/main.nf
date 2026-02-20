@@ -44,11 +44,11 @@ process classify_kraken2_contigs{
     path kraken2_db
     output:
     val sample_name, emit: sample_name
-    path "${sample_name}_kraken2_*.txt", emit: kraken_report
+    path "${sample_name}_*.*", emit: kraken_report
     script:
     {
     """
-    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --use-names --output ${sample_name}_kraken2_output.txt  
+    kraken2 --db ${kraken2_db} --threads ${task.cpus} -input ${contigs_fasta} --report ${sample_name}_kraken2_report.txt --use-names  --unclassified-out ${sample_name}_unclassified_reads.fq --output ${sample_name}_kraken2_output.txt  
     """
     }
  

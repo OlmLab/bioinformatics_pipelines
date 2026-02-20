@@ -1,6 +1,8 @@
 
 nextflow.enable.dsl = 2
-
+// Bowtie2 parameters
+params.bowtie2_non_competitive_mapping=false
+//
 params.single_end = false
 params.output_dir = "./output"
 params.paired = false
