@@ -421,34 +421,110 @@ Usually this option is used to prioritize specific genomes.
 
 #### Description
 
-This roadmap is designed only to map a set of reads to a set of reference genomes. It offers two modes of operation:
+This roadmap maps a set of reads to a set of reference genomes and outputs a BAM file per sample/genome pair. It supports both **short reads** (Illumina, via Bowtie2) and **long reads** (Oxford Nanopore or PacBio, via minimap2).
 
-1. **paired** : The reads are pared with genomes so any task would be aligning the reads to the corresponding genome.
-2. **cross** : Each sample is aligned to each fasta file in the input genomes.
+Two pairing modes are available:
+
+1. **paired** (default): Each sample is aligned to its corresponding genome (1-to-1 pairing; the CSV row order must match).
+2. **cross**: Each sample is aligned to every genome in the reference set.
+
+**BAM output behaviour:**
+
+By default, the output BAM contains **mapped reads only**. This is the most common use case and avoids large output files. Use the flags below to change this:
+
+| Flag | Effect |
+|------|--------|
+| *(none — default)* | Mapped-only BAM |
+| `--keep_unmapped_reads` | Full BAM (mapped + unmapped reads retained) |
+| `--get_mapped_reads` | Also produce a FASTQ of mapped reads |
+| `--get_unmapped_reads` | Also produce a FASTQ of unmapped reads |
+
+`--get_mapped_reads` and `--get_unmapped_reads` can be combined and are independent of `--keep_unmapped_reads`.
 
 ![roadmap_5](../imgs/dag-roadmap_5.svg)
 
-#### How to run
+#### How to run — short reads (default)
 
-To run this roadmap, you need to provide a CSV file containing the following columns:
+Provide a CSV with the following columns:
 
-- sample_name
-- reads1
-- reads2
+- `sample_name`
+- `reads1`
+- `reads2`
 
-Also, you need to provide a CSV file containing the paths to the genomes you want to map the reads to. This file should contain one column:
+And a genome CSV with one column:
 
-- fasta_files (address to each fasta file)
-
-You can run the roadmap using the following command:
+- `fasta_files`
 
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_5" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -profile apptainer,alpine
+nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --input_reads "<path-to-samples.csv>" \
+    --input_fastas "<path-to-genomes.csv>" \
+    -profile apptainer,alpine
+```
+
+#### How to run — long reads (Nanopore / PacBio)
+
+> **Important**: Long-read mode uses a **different CSV format** from short reads. This is intentional — long reads are single-end and require careful validation before running.
+
+Provide a CSV with the following columns:
+
+- `sample_name`
+- `reads` *(single FASTQ file per sample — do **not** use `reads1`/`reads2`)*
+
+And a genome CSV with one column:
+
+- `fasta_files`
+
+Pass `--read_type` to select the sequencing technology. This controls the minimap2 preset:
+
+| `--read_type` | Technology | minimap2 preset |
+|---|---|---|
+| `nanopore` | Oxford Nanopore (ONT) | `map-ont` |
+| `pacbio_clr` | PacBio CLR (continuous long reads) | `map-pb` |
+| `pacbio_hifi` | PacBio HiFi / CCS (high-accuracy) | `map-hifi` |
+
+**Nanopore example:**
+
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --read_type nanopore \
+    --input_type local \
+    --input_reads "<path-to-long-reads.csv>" \
+    --input_fastas "<path-to-genomes.csv>" \
+    -profile apptainer,alpine
+```
+
+**PacBio HiFi example:**
+
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --read_type pacbio_hifi \
+    --input_type local \
+    --input_reads "<path-to-long-reads.csv>" \
+    --input_fastas "<path-to-genomes.csv>" \
+    -profile apptainer,alpine
+```
+
+> **Note**: SRA (`--input_type sra`) is not currently supported for long reads. Provide local FASTQ files.
+
+#### Example: keep full BAM and extract unmapped reads as FASTQ
+
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --input_reads "<path-to-samples.csv>" \
+    --input_fastas "<path-to-genomes.csv>" \
+    --keep_unmapped_reads \
+    --get_unmapped_reads \
+    -profile apptainer,alpine
 ```
 
 ##### Relevant optional arguments
 
-- **--roadmap_5_pairmode** : By default, the roadmap runs in pair mode. Otherwise, you should provide "cross" as the argument.
+- **--read_type** : Sequencing technology. One of `short` (default), `nanopore`, `pacbio_clr`, `pacbio_hifi`.
+- **--roadmap_5_pairmode** : Pairing mode. `paired` (default) or `cross`.
+- **--keep_unmapped_reads** : Retain unmapped reads in the output BAM (default: mapped-only BAM).
+- **--get_mapped_reads** : Additionally write a FASTQ file of mapped reads.
+- **--get_unmapped_reads** : Additionally write a FASTQ file of unmapped reads.
 
 ------
 
