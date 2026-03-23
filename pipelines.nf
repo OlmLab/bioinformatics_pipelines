@@ -13,6 +13,10 @@ params.is_genome_db=null // default is null
 params.is_stb_db=null // default is null
 params.is_genes=null // default is null
 params.roadmap_5_pairmode="paired"
+params.read_type="short"              // Sequencing technology: short, nanopore, pacbio_clr, pacbio_hifi
+params.keep_unmapped_reads=false      // Include unmapped reads in output BAM (default: mapped-only BAM)
+params.get_mapped_reads=false         // Additionally output a FASTQ of mapped reads
+params.get_unmapped_reads=false       // Additionally output a FASTQ of unmapped reads
 params.metaphlan_b_distance="bray-curtis"
 params.metaphlan_diversity="beta"
 params.sylph_db = null
@@ -224,40 +228,79 @@ workflow {
         {
             error "Please provide the reads information using the input_reads parameter."
         }
-        if (params.input_type=="sra")
+        def valid_read_types = ["short", "nanopore", "pacbio_clr", "pacbio_hifi"]
+        if (!valid_read_types.contains(params.read_type))
         {
-            table=tableToDict(file("${params.input_reads}"))
-            get_sequences_from_sra(Channel.fromList(table["Run"]))
-            sample_names=get_sequences_from_sra.out.sra_ids
-            reads=get_sequences_from_sra.out.fastq_files.map{t->[t]}
+            error "Invalid --read_type '${params.read_type}'. Must be one of: ${valid_read_types.join(', ')}"
         }
-        else if (params.input_type=="local")
+        if (params.read_type == "short")
         {
-            table=tableToDict(file("${params.input_reads}"))
-            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
-            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
-            reads=reads_1.merge(reads_2)
-            sample_names=Channel.fromList(table["sample_name"])
-            
+            // Short reads: CSV must have columns: sample_name, reads1, reads2
+            if (params.input_type=="sra")
+            {
+                table=tableToDict(file("${params.input_reads}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                sample_names=get_sequences_from_sra.out.sra_ids
+                reads=get_sequences_from_sra.out.fastq_files.map{t->[t]}
+            }
+            else if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_reads}"))
+                reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+                reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+                reads=reads_1.merge(reads_2)
+                sample_names=Channel.fromList(table["sample_name"])
+            }
+            samples_reads=sample_names.merge(reads)
+            genomes=Channel.fromPath(tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)})
+            if (params.roadmap_5_pairmode=="cross")
+            {
+                samples_reads.combine(genomes).set{inputs}
+            }
+            else if (params.roadmap_5_pairmode=="paired")
+            {
+                samples_reads.merge(genomes).set{inputs}
+            }
+            inputs.multiMap{v->
+                sn:v[0]
+                rd:v[1]
+                gn:v[2]
+                tr:(v[1].size() == 2)
+            }.set{ins}
+            roadmap_5(ins.sn, ins.rd, ins.gn, ins.tr)
         }
-        samples_reads=sample_names.merge(reads)
-        genomes=Channel.fromPath(tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)})
-        if (params.roadmap_5_pairmode=="cross")
+        else
         {
-            samples_reads.combine(genomes).set{inputs}
+            // Long reads (nanopore, pacbio_clr, pacbio_hifi): CSV must have columns: sample_name, reads
+            // NOTE: SRA downloads are not supported for long reads. Provide local FASTQ files.
+            if (params.input_type=="sra")
+            {
+                error "SRA input is not supported for long reads in roadmap_5. Please provide local long-read FASTQ files using --input_type local."
+            }
+            else if (params.input_type=="local")
+            {
+                table=tableToDict(file("${params.input_reads}"))
+                reads=Channel.fromPath(table["reads"].collect{t->file(t)})
+                sample_names=Channel.fromList(table["sample_name"])
+            }
+            samples_reads=sample_names.merge(reads)
+            genomes=Channel.fromPath(tableToDict(file("${params.input_fastas}"))["fasta_files"].collect{t->file(t)})
+            if (params.roadmap_5_pairmode=="cross")
+            {
+                samples_reads.combine(genomes).set{inputs}
+            }
+            else if (params.roadmap_5_pairmode=="paired")
+            {
+                samples_reads.merge(genomes).set{inputs}
+            }
+            inputs.multiMap{v->
+                sn: v[0]
+                rd: v[1]
+                gn: v[2]
+                tr: false   // long reads are always single-end
+            }.set{ins}
+            roadmap_5(ins.sn, ins.rd, ins.gn, ins.tr)
         }
-        else if (params.roadmap_5_pairmode=="paired")
-        {
-            samples_reads.merge(genomes).set{inputs}
-        }
-        inputs.multiMap{v->
-            sn:v[0]
-            rd:v[1]
-            gn:v[2]
-            tr:(v[1].size() == 2)
-        }.set{ins}
-        roadmap_5(ins.sn, ins.rd, ins.gn,ins.tr)
-
     }
     else if (params.roadmap_id=="roadmap_6")
     {
@@ -601,18 +644,63 @@ workflow roadmap_3_2 {
 }
 
 workflow roadmap_5 {
-    //This roadmap is a minimal roadmap for mapping reads a set of reads to a set of genomes 
+    /*
+     * Maps reads to reference genomes. Supports short reads (bowtie2) and long reads
+     * (minimap2: nanopore, pacbio_clr, pacbio_hifi). Controlled by --read_type.
+     *
+     * Default output: mapped-only BAM per sample/genome pair.
+     * --keep_unmapped_reads : output BAM retains unmapped reads as well.
+     * --get_mapped_reads    : additionally produce a FASTQ of mapped reads.
+     * --get_unmapped_reads  : additionally produce a FASTQ of unmapped reads.
+     */
     take:
     sample_name
     reads
     genome
     paired
-    
-    main:
-    map_reads_fasta_pairs(sample_name, reads, genome,paired)
-    get_mapped_reads(map_reads_fasta_pairs.out.sorted_bam,map_reads_fasta_pairs.out.paired,map_reads_fasta_pairs.out.sample_name)
-    get_unmapped_reads(map_reads_fasta_pairs.out.sorted_bam,map_reads_fasta_pairs.out.paired,map_reads_fasta_pairs.out.sample_name)
 
+    main:
+    if (params.read_type == "short") {
+        map_reads_fasta_pairs(sample_name, reads, genome, paired)
+        finalize_alignment_bam(
+            map_reads_fasta_pairs.out.sorted_bam,
+            map_reads_fasta_pairs.out.sample_name
+        )
+        if (params.get_mapped_reads) {
+            get_mapped_reads(
+                map_reads_fasta_pairs.out.sorted_bam,
+                map_reads_fasta_pairs.out.paired,
+                map_reads_fasta_pairs.out.sample_name
+            )
+        }
+        if (params.get_unmapped_reads) {
+            get_unmapped_reads(
+                map_reads_fasta_pairs.out.sorted_bam,
+                map_reads_fasta_pairs.out.paired,
+                map_reads_fasta_pairs.out.sample_name
+            )
+        }
+    } else {
+        map_long_reads_fasta_pairs(sample_name, reads, genome)
+        finalize_alignment_bam(
+            map_long_reads_fasta_pairs.out.sorted_bam,
+            map_long_reads_fasta_pairs.out.sample_name
+        )
+        if (params.get_mapped_reads) {
+            get_mapped_reads(
+                map_long_reads_fasta_pairs.out.sorted_bam,
+                map_long_reads_fasta_pairs.out.paired,
+                map_long_reads_fasta_pairs.out.sample_name
+            )
+        }
+        if (params.get_unmapped_reads) {
+            get_unmapped_reads(
+                map_long_reads_fasta_pairs.out.sorted_bam,
+                map_long_reads_fasta_pairs.out.paired,
+                map_long_reads_fasta_pairs.out.sample_name
+            )
+        }
+    }
 }
 
 workflow roadmap_6{
@@ -954,6 +1042,8 @@ include {
     get_unmapped_reads;
     get_mapped_reads;
     map_reads_fasta_pairs;
+    map_long_reads_fasta_pairs;
+    finalize_alignment_bam;
     bowtie2_to_sorted_bam;
     index_star;
     align_star;

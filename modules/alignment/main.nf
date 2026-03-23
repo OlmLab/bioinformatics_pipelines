@@ -240,7 +240,8 @@ process map_reads_fasta_pairs{
     /*
     * This process lumps indexing and mapping of reads to a genome. It  is useful for when we have read-genome pairs.
     */
-    publishDir "${params.output_dir}/bowtie2_alignment/${sample_name}_${reference_fasta.baseName}", mode: 'copy', pattern: "*sorted.bam"
+    // Publishing is suppressed when called from roadmap_5; finalize_alignment_bam handles it there.
+    publishDir "${params.output_dir}/bowtie2_alignment/${sample_name}_${reference_fasta.baseName}", mode: 'copy', pattern: "*sorted.bam", enabled: params.get('roadmap_id', '') != "roadmap_5"
     input:
     val sample_name
     path reads
@@ -276,6 +277,64 @@ process map_reads_fasta_pairs{
         """
     }
 
+}
+
+process map_long_reads_fasta_pairs {
+    /*
+     * Aligns long reads to a reference genome using minimap2.
+     * The preset is chosen from params.read_type:
+     *   nanopore   -> map-ont
+     *   pacbio_clr -> map-pb
+     *   pacbio_hifi -> map-hifi
+     * Output is a full sorted BAM (mapped + unmapped). Use finalize_alignment_bam
+     * to produce the published BAM with optional unmapped-read filtering.
+     */
+    input:
+    val sample_name
+    path reads
+    path reference_fasta
+    output:
+    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam
+    val sample_name, emit: sample_name
+    val false, emit: paired
+
+    script:
+    def preset = (params.read_type == "nanopore")    ? "map-ont"  :
+                 (params.read_type == "pacbio_clr")  ? "map-pb"   :
+                                                        "map-hifi"
+    """
+    minimap2 -ax ${preset} -t ${task.cpus} ${reference_fasta} ${reads} | \\
+        samtools view -bS - | \\
+        samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
+    """
+}
+
+process finalize_alignment_bam {
+    /*
+     * Publishes the final BAM for roadmap_5.
+     * By default, unmapped reads are filtered out (mapped-only BAM).
+     * With --keep_unmapped_reads the full BAM is published instead.
+     * FASTQ extraction (--get_mapped_reads / --get_unmapped_reads) runs
+     * separately on the pre-filter BAM so no reads are lost.
+     */
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy'
+    input:
+    path sorted_bam
+    val sample_name
+    output:
+    path "${sorted_bam.baseName}.final.bam", emit: final_bam
+    val sample_name, emit: sample_name
+
+    script:
+    if (params.keep_unmapped_reads) {
+        """
+        cp ${sorted_bam} ${sorted_bam.baseName}.final.bam
+        """
+    } else {
+        """
+        samtools view -b -F 4 ${sorted_bam} -o ${sorted_bam.baseName}.final.bam
+        """
+    }
 }
 
 process index_star {
