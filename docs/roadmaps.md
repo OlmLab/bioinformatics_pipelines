@@ -91,7 +91,7 @@ The following table summerizes the available roadmaps in this repository:
 | roadmap_1_3_2    | End-to-end analysis: bin extraction, dereplication, strain-level analysis. | raw reads or SRA IDs, host genome | dereplicated genomes, inStrain profiles, comparisons |
 | roadmap_4        | Quality control and host decontamination of raw sequencing data. | raw reads or SRA IDs, host genome | quality-controlled reads |
 | roadmap_3_2      | Dereplication of genomes followed by strain-level analysis.   | reads or BAM files, genomes | dereplicated genomes, inStrain profiles and comparisons |
-| roadmap_5        | Mapping reads to reference genomes.                          | reads, genomes | mapped reads (BAM files) |
+| roadmap_5        | Mapping reads to reference genomes.                          | reads or SRA accession IDs, genomes | mapped reads (BAM files) |
 | roadmap_6        | Metagenomics analysis using reference-based approach.        | QCed reads | taxonomic and functional profiles |
 | roadmap_7        | Taxonomic and functional annotation of genomes.              | genomes | annotated genomes |
 | roadmap_9        | Detection of circular RNA contigs from RNA-Seq data.         | RNA-Seq reads, reference transcriptome | circular RNA contigs and mappings |
@@ -445,35 +445,39 @@ By default, the output BAM contains **mapped reads only**. This is the most comm
 
 #### How to run — short reads (default)
 
-Provide a CSV with the following columns:
+**Local input**: Provide a CSV with the following columns:
 
 - `sample_name`
 - `reads1`
 - `reads2`
 
-And a genome CSV with one column:
-
-- `fasta_files`
-
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --input_type local \
     --input_reads "<path-to-samples.csv>" \
     --input_fastas "<path-to-genomes.csv>" \
     -profile apptainer,alpine
 ```
 
+**SRA input**: Provide a CSV with a single column:
+
+- `Run` (SRA accession ID, e.g. `SRR12345678`)
+
+```bash
+nextflow run pipelines.nf --roadmap_id "roadmap_5" \
+    --input_type sra \
+    --input_reads "<path-to-sra-accessions.csv>" \
+    --input_fastas "<path-to-genomes.csv>" \
+    -profile apptainer,alpine
+```
+
+In both cases, a genome CSV with one column is required:
+
+- `fasta_files`
+
 #### How to run — long reads (Nanopore / PacBio)
 
 > **Important**: Long-read mode uses a **different CSV format** from short reads. This is intentional — long reads are single-end and require careful validation before running.
-
-Provide a CSV with the following columns:
-
-- `sample_name`
-- `reads` *(single FASTQ file per sample — do **not** use `reads1`/`reads2`)*
-
-And a genome CSV with one column:
-
-- `fasta_files`
 
 Pass `--read_type` to select the sequencing technology. This controls the minimap2 preset:
 
@@ -483,7 +487,10 @@ Pass `--read_type` to select the sequencing technology. This controls the minima
 | `pacbio_clr` | PacBio CLR (continuous long reads) | `map-pb` |
 | `pacbio_hifi` | PacBio HiFi / CCS (high-accuracy) | `map-hifi` |
 
-**Nanopore example:**
+**Local input**: Provide a CSV with the following columns:
+
+- `sample_name`
+- `reads` *(single FASTQ file per sample — do **not** use `reads1`/`reads2`)*
 
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_5" \
@@ -494,18 +501,22 @@ nextflow run pipelines.nf --roadmap_id "roadmap_5" \
     -profile apptainer,alpine
 ```
 
-**PacBio HiFi example:**
+**SRA input**: Provide a CSV with a single column:
+
+- `Run` (SRA accession ID, e.g. `SRR12345678`)
 
 ```bash
 nextflow run pipelines.nf --roadmap_id "roadmap_5" \
-    --read_type pacbio_hifi \
-    --input_type local \
-    --input_reads "<path-to-long-reads.csv>" \
+    --read_type nanopore \
+    --input_type sra \
+    --input_reads "<path-to-sra-accessions.csv>" \
     --input_fastas "<path-to-genomes.csv>" \
     -profile apptainer,alpine
 ```
 
-> **Note**: SRA (`--input_type sra`) is not currently supported for long reads. Provide local FASTQ files.
+In both cases, a genome CSV with one column is required:
+
+- `fasta_files`
 
 #### Example: keep full BAM and extract unmapped reads as FASTQ
 
@@ -520,6 +531,7 @@ nextflow run pipelines.nf --roadmap_id "roadmap_5" \
 
 ##### Relevant optional arguments
 
+- **--input_type** : Input mode. `local` (default) or `sra`. For SRA mode the input CSV must have a `Run` column with accession IDs.
 - **--read_type** : Sequencing technology. One of `short` (default), `nanopore`, `pacbio_clr`, `pacbio_hifi`.
 - **--roadmap_5_pairmode** : Pairing mode. `paired` (default) or `cross`.
 - **--keep_unmapped_reads** : Retain unmapped reads in the output BAM (default: mapped-only BAM).

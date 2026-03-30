@@ -235,13 +235,13 @@ workflow {
         }
         if (params.read_type == "short")
         {
-            // Short reads: CSV must have columns: sample_name, reads1, reads2
+            // Short reads: local CSV needs columns: sample_name, reads1, reads2; SRA CSV needs column: Run
             if (params.input_type=="sra")
             {
                 table=tableToDict(file("${params.input_reads}"))
                 get_sequences_from_sra(Channel.fromList(table["Run"]))
                 sample_names=get_sequences_from_sra.out.sra_ids
-                reads=get_sequences_from_sra.out.fastq_files.map{t->[t]}
+                reads=get_sequences_from_sra.out.fastq_files
             }
             else if (params.input_type=="local")
             {
@@ -271,11 +271,13 @@ workflow {
         }
         else
         {
-            // Long reads (nanopore, pacbio_clr, pacbio_hifi): CSV must have columns: sample_name, reads
-            // NOTE: SRA downloads are not supported for long reads. Provide local FASTQ files.
+            // Long reads (nanopore, pacbio_clr, pacbio_hifi): CSV must have columns: sample_name, reads (local) or Run (sra)
             if (params.input_type=="sra")
             {
-                error "SRA input is not supported for long reads in roadmap_5. Please provide local long-read FASTQ files using --input_type local."
+                table=tableToDict(file("${params.input_reads}"))
+                get_sequences_from_sra(Channel.fromList(table["Run"]))
+                sample_names=get_sequences_from_sra.out.sra_ids
+                reads=get_sequences_from_sra.out.fastq_files
             }
             else if (params.input_type=="local")
             {
@@ -648,10 +650,25 @@ workflow roadmap_5 {
      * Maps reads to reference genomes. Supports short reads (bowtie2) and long reads
      * (minimap2: nanopore, pacbio_clr, pacbio_hifi). Controlled by --read_type.
      *
-     * Default output: mapped-only BAM per sample/genome pair.
-     * --keep_unmapped_reads : output BAM retains unmapped reads as well.
-     * --get_mapped_reads    : additionally produce a FASTQ of mapped reads.
-     * --get_unmapped_reads  : additionally produce a FASTQ of unmapped reads.
+     * Input modes (--input_type):
+     *   sra   : CSV with a "Run" column containing SRA accession IDs. Supported for
+     *           both short and long reads.
+     *   local : CSV with "sample_name" + "reads1"/"reads2" columns (short reads) or
+     *           "sample_name" + "reads" columns (long reads).
+     *
+     * Required parameters:
+     *   --input_reads  : path to the input CSV file (reads or SRA accessions)
+     *   --input_fastas : path to a CSV with a "fasta_files" column listing reference genomes
+     *   --read_type    : short | nanopore | pacbio_clr | pacbio_hifi (default: short)
+     *
+     * Pairing mode (--roadmap_5_pairmode):
+     *   paired : each sample is mapped to the genome at the same row in input_fastas (default)
+     *   cross  : every sample is mapped to every genome (all-vs-all)
+     *
+     * Output options:
+     *   --keep_unmapped_reads : output BAM retains unmapped reads as well (default: mapped-only)
+     *   --get_mapped_reads    : additionally produce a FASTQ of mapped reads
+     *   --get_unmapped_reads  : additionally produce a FASTQ of unmapped reads
      */
     take:
     sample_name
