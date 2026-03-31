@@ -1,0 +1,14 @@
+FROM eclipse-temurin:11-jre-jammy
+
+LABEL maintainer="Olm Lab"
+LABEL description="Container for the subsample_reads roadmap. Provides BBTools reformat.sh for read subsampling."
+
+RUN apt-get update && apt-get install -y \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://sourceforge.net/projects/bbmap/files/latest/download -O /tmp/BBTools.tar.gz \
+    && tar -xzf /tmp/BBTools.tar.gz -C /opt/ \
+    && rm /tmp/BBTools.tar.gz
+
+ENV PATH="/opt/bbmap:$PATH"

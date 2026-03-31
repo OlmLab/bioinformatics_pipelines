@@ -40,6 +40,8 @@ params.exclude_metaphlan=false
 params.exclude_sylph=false
 params.exclude_humann=false
 params.scan_genome_batch_size=10
+params.subsample_seed=42
+params.fractions=null
 
 
 // mmseqs2 parameters
@@ -484,6 +486,38 @@ workflow {
 
     }
     
+    else if (params.roadmap_id=="subsample_reads")
+    {
+        if (!params.input_file)
+        {
+            error "Please provide the reads information using the --input_file parameter."
+        }
+        if (!params.fractions)
+        {
+            error "Please provide fractions using the --fractions parameter (e.g. --fractions '0.1,0.25,0.5')."
+        }
+        fractions=Channel.fromList(params.fractions.tokenize(',').collect{it.trim() as Double})
+        if (params.input_type=="sra")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            get_sequences_from_sra(Channel.fromList(table["Run"]))
+            sample_names=get_sequences_from_sra.out.sra_ids
+            reads=get_sequences_from_sra.out.fastq_files
+        }
+        else if (params.input_type=="local")
+        {
+            table=tableToDict(file("${params.input_file}"))
+            reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
+            reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
+            reads=reads_1.merge(reads_2)
+            sample_names=Channel.fromList(table["sample_name"])
+        }
+        else
+        {
+            error "Please provide a valid --input_type (local or sra)."
+        }
+        subsample_reads(sample_names, reads, fractions)
+    }
     else
         {
             error "Please provide a valid roadmap_id."
@@ -718,6 +752,39 @@ workflow roadmap_5 {
             )
         }
     }
+}
+
+workflow subsample_reads {
+    /*
+     * Randomly subsamples reads at one or more fractions using BBTools reformat.sh.
+     * Paired-end reads are processed together so read pairing is preserved.
+     * Each sample × fraction combination produces its own output FASTQ file(s).
+     *
+     * Input modes (--input_type):
+     *   sra   : CSV with a "Run" column containing SRA accession IDs.
+     *   local : CSV with "sample_name", "reads1", "reads2" columns.
+     *
+     * Required parameters:
+     *   --input_file : path to the input CSV file
+     *   --fractions  : comma-separated list of fractions (e.g. "0.1,0.25,0.5")
+     *
+     * Optional parameters:
+     *   --subsample_seed : random seed for reproducibility (default: 42)
+     */
+    take:
+    sample_names
+    reads
+    fractions
+
+    main:
+    sample_names.merge(reads)
+        .combine(fractions)
+        .multiMap { v ->
+            sn: v[0]
+            rd: v[1]
+            fr: v[2]
+        }.set { ins }
+    subsample_reads_reformat(ins.sn, ins.rd, ins.fr)
 }
 
 workflow roadmap_6{
@@ -1081,6 +1148,7 @@ include {get_coverage_for_metabat2;
 
 include {tableToDict;
         concatenate_files;
+        subsample_reads_reformat;
         } from "./modules/files"
 
 include {get_sequences_from_sra;

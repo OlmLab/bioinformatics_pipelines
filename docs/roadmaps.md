@@ -16,6 +16,7 @@
   - [roadmap_7](#roadmap_7)
   - [roadmap_9](#roadmap_9)
   - [annotate_contigs](#annotate_contigs)
+  - [subsample_reads](#subsample_reads)
 
 ------
 
@@ -96,6 +97,7 @@ The following table summerizes the available roadmaps in this repository:
 | roadmap_7        | Taxonomic and functional annotation of genomes.              | genomes | annotated genomes |
 | roadmap_9        | Detection of circular RNA contigs from RNA-Seq data.         | RNA-Seq reads, reference transcriptome | circular RNA contigs and mappings |
 | annotate_contigs | Taxonomic and functional annotation of contigs.              | contigs | annotated contigs |
+| subsample_reads  | Randomly subsample reads at one or more fractions.           | reads or SRA accession IDs | subsampled FASTQ files |
 
 ------
 
@@ -726,3 +728,58 @@ nextflow run pipelines.nf --roadmap_id "annotate_contigs" --input_contigs "<path
 - **--skip_genomad_annotation**: If you want to skip the Genomad annotation step, you can provide this argument.
 
 **NOTES** If provide --skip_mmseqs_clustering, and not --skip_functional_annotation, all the genes from all contigs will be annotated using eggNOG-mapper.
+
+------
+
+### subsample_reads
+
+#### Description
+
+This roadmap randomly subsamples a set of sequencing reads at one or more user-defined fractions and produces a FASTQ file (or pair of FASTQ files for paired-end data) for each sample × fraction combination. It is useful for rarefaction analyses, benchmarking, and preparing downsampled datasets.
+
+Subsampling is performed with **BBTools `reformat.sh`**, which processes both mates of a paired-end library together, guaranteeing that read pairing is preserved in the output.
+
+Two outputs are produced per sample × fraction:
+
+- **Subsampled FASTQ file(s)** written to:
+  ```
+  <output_dir>/subsampled_reads/<sample_name>/fraction_<fraction>/
+  ```
+- **A CSV file** (`<sample_name>_<fraction>.csv`) written to:
+  ```
+  <output_dir>/subsampled_reads/csv/
+  ```
+  The CSV has `sample_name`, `reads1`, `reads2` columns with absolute paths, so it can be passed directly to other roadmaps via `--input_file` or `--input_reads`.
+
+#### How to run
+
+**Local input**: Provide a CSV with the following columns:
+
+- `sample_name`
+- `reads1`
+- `reads2`
+
+```bash
+nextflow run pipelines.nf --roadmap_id subsample_reads \
+    --input_type local \
+    --input_file "<path-to-samples.csv>" \
+    --fractions "0.1,0.25,0.5" \
+    -profile apptainer,alpine
+```
+
+**SRA input**: Provide a CSV with a single column:
+
+- `Run` (SRA accession ID, e.g. `SRR12345678`)
+
+```bash
+nextflow run pipelines.nf --roadmap_id subsample_reads \
+    --input_type sra \
+    --input_file "<path-to-sra-accessions.csv>" \
+    --fractions "0.1,0.25,0.5" \
+    -profile apptainer,alpine
+```
+
+##### Relevant optional arguments
+
+- **--fractions** : Comma-separated list of fractions to sample. Each value must be between 0 and 1 (e.g. `"0.1,0.25,0.5"`). Every sample is processed at every fraction.
+- **--subsample_seed** : Random seed passed to `reformat.sh` for reproducibility. Default is `42`.

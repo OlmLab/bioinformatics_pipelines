@@ -35,3 +35,6 @@ This directory contains the Dockerfiles for the pipelines. Each Dockerfile is de
     - trimmomatic
     - star
     - subread
+
+- **subsample_reads**:
+    - bbtools (reformat.sh)
