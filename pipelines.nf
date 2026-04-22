@@ -17,6 +17,7 @@ params.read_type="short"              // Sequencing technology: short, nanopore,
 params.keep_unmapped_reads=false      // Include unmapped reads in output BAM (default: mapped-only BAM)
 params.get_mapped_reads=false         // Additionally output a FASTQ of mapped reads
 params.get_unmapped_reads=false       // Additionally output a FASTQ of unmapped reads
+params.dump_report=true               // Write pipeline_info/trace.txt and pipeline_info/run_stats.txt
 params.metaphlan_b_distance="bray-curtis"
 params.metaphlan_diversity="beta"
 params.sylph_db = null
@@ -50,6 +51,302 @@ params.mmseqs_linclust_coverage = 0.8
 // ###### MAIN WORKFLOW ###### //
 params.build_gene_db_mode="nucleotide" 
 params.eggnog_db_taxonomic_scope="2"
+
+def parseLongMetric(value) {
+    if (value == null) {
+        return null
+    }
+    def text = value.toString().trim()
+    if (!text || text.equalsIgnoreCase('NA')) {
+        return null
+    }
+    try {
+        return new BigDecimal(text).longValue()
+    } catch (Exception ignored) {
+        return null
+    }
+}
+
+def parseDecimalMetric(value) {
+    if (value == null) {
+        return null
+    }
+    def text = value.toString().trim()
+    if (!text || text.equalsIgnoreCase('NA')) {
+        return null
+    }
+    text = text.replace('%', '')
+    try {
+        return new BigDecimal(text)
+    } catch (Exception ignored) {
+        return null
+    }
+}
+
+def formatDurationMs(value) {
+    Long millis = parseLongMetric(value)
+    if (millis == null) {
+        return "NA"
+    }
+    if (millis < 1000L) {
+        return "${millis} ms"
+    }
+
+    long totalSeconds = (long) (millis / 1000L)
+    long days = (long) (totalSeconds / 86400L)
+    long hours = (long) ((totalSeconds % 86400L) / 3600L)
+    long minutes = (long) ((totalSeconds % 3600L) / 60L)
+    long seconds = (long) (totalSeconds % 60L)
+
+    def parts = []
+    if (days) {
+        parts << "${days}d"
+    }
+    if (hours) {
+        parts << "${hours}h"
+    }
+    if (minutes) {
+        parts << "${minutes}m"
+    }
+    if (seconds || !parts) {
+        parts << "${seconds}s"
+    }
+    return parts.join(' ')
+}
+
+def formatBytes(value) {
+    Long bytes = parseLongMetric(value)
+    if (bytes == null) {
+        return "NA"
+    }
+
+    def units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+    BigDecimal size = new BigDecimal(bytes)
+    int unitIndex = 0
+    while (size >= 1024 && unitIndex < units.size() - 1) {
+        size = size.divide(new BigDecimal(1024), 2, java.math.RoundingMode.HALF_UP)
+        unitIndex += 1
+    }
+    return "${size.stripTrailingZeros().toPlainString()} ${units[unitIndex]}"
+}
+
+def formatPercent(value) {
+    BigDecimal pct = parseDecimalMetric(value)
+    if (pct == null) {
+        return "NA"
+    }
+    return "${pct.setScale(1, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()}%"
+}
+
+def waitForTraceFile(File traceFile, long timeoutMs = 30000L) {
+    long deadline = System.currentTimeMillis() + timeoutMs
+    while (System.currentTimeMillis() <= deadline) {
+        if (traceFile.exists() && traceFile.length() > 0L) {
+            return true
+        }
+        sleep(200)
+    }
+    return traceFile.exists() && traceFile.length() > 0L
+}
+
+def readTraceRows(File traceFile) {
+    if (!traceFile.exists() || traceFile.length() == 0L) {
+        return []
+    }
+
+    def lines = traceFile.readLines().findAll { it?.trim() }
+    if (lines.size() < 2) {
+        return []
+    }
+
+    def headers = lines[0].split('\t', -1).collect { it.trim() }
+    return lines.drop(1).collect { line ->
+        def cols = line.split('\t', -1)
+        def row = [:]
+        headers.eachWithIndex { header, idx ->
+            row[header] = idx < cols.size() ? cols[idx].trim() : ''
+        }
+        row.duration_ms = parseLongMetric(row['duration'])
+        row.realtime_ms = parseLongMetric(row['realtime'])
+        row.peak_rss_bytes = parseLongMetric(row['peak_rss'])
+        row.peak_vmem_bytes = parseLongMetric(row['peak_vmem'])
+        row.cpu_pct = parseDecimalMetric(row['%cpu'])
+        row.cpus_req = parseDecimalMetric(row['cpus'])
+        row.memory_req_bytes = parseLongMetric(row['memory'])
+        row
+    }
+}
+
+def padCell(value, int width) {
+    def text = (value ?: 'NA').toString().replace('\t', ' ').replace('\n', ' ')
+    if (text.size() > width) {
+        if (width <= 3) {
+            return text.take(width)
+        }
+        return text.take(width - 3) + '...'
+    }
+    return text.padRight(width)
+}
+
+def renderTable(List<Map> rows, List<List> columns) {
+    if (!rows) {
+        return ['(none)']
+    }
+    def header = columns.collect { col -> padCell(col[0], (int) col[2]) }.join('  ')
+    def divider = columns.collect { col -> ''.padRight((int) col[2], '-') }.join('  ')
+    def body = rows.collect { row ->
+        columns.collect { col ->
+            def key = col[1]
+            def width = (int) col[2]
+            padCell(row[key], width)
+        }.join('  ')
+    }
+    return [header, divider] + body
+}
+
+def buildRunReport(workflowMeta, paramsMap) {
+    def infoDir = new File(paramsMap.tracedir.toString())
+    infoDir.mkdirs()
+
+    def traceFile = new File(infoDir, 'trace.txt')
+    def reportFile = new File(infoDir, 'run_stats.txt')
+    def lines = []
+
+    lines << 'BioPlumber Run Stats'
+    lines << '===================='
+    lines << ''
+    lines << "roadmap_id: ${paramsMap.roadmap_id ?: 'NA'}"
+    lines << "status: ${workflowMeta.success ? 'OK' : 'FAILED'}"
+    lines << "run_name: ${workflowMeta.runName ?: 'NA'}"
+    lines << "session_id: ${workflowMeta.sessionId ?: 'NA'}"
+    lines << "started: ${workflowMeta.start ?: 'NA'}"
+    lines << "completed: ${workflowMeta.complete ?: 'NA'}"
+    lines << "elapsed: ${workflowMeta.duration ?: 'NA'}"
+    lines << "command: ${workflowMeta.commandLine ?: 'NA'}"
+    lines << "profile: ${workflowMeta.profile ?: 'NA'}"
+    lines << "work_dir: ${workflowMeta.workDir ?: 'NA'}"
+    lines << "trace_file: ${traceFile.absolutePath}"
+    lines << ''
+
+    def rows = waitForTraceFile(traceFile) ? readTraceRows(traceFile) : []
+    if (!rows) {
+        lines << 'Tasks'
+        lines << '-----'
+        lines << 'trace_status: unavailable or empty'
+        lines << 'note: task-level CPU and memory stats depend on executor/container support'
+        reportFile.text = lines.join(System.lineSeparator()) + System.lineSeparator()
+        return
+    }
+
+    def totalTasks = rows.size()
+    def completedTasks = rows.count { it.status == 'COMPLETED' }
+    def failedTasks = rows.count { it.status in ['FAILED', 'ABORTED'] }
+    def durations = rows.collect { it.duration_ms }.findAll { it != null }
+    def peakRssValues = rows.collect { it.peak_rss_bytes }.findAll { it != null }
+    def cpuValues = rows.collect { it.cpu_pct }.findAll { it != null }
+
+    def processStats = rows.groupBy { it.process ?: 'unknown' }.collect { processName, processRows ->
+        def processDurations = processRows.collect { it.duration_ms }.findAll { it != null }
+        def processPeakRss = processRows.collect { it.peak_rss_bytes }.findAll { it != null }
+        def processCpu = processRows.collect { it.cpu_pct }.findAll { it != null }
+        [
+            process: processName,
+            tasks: processRows.size(),
+            total_duration: processDurations ? processDurations.inject(0L) { acc, v -> acc + v } : 0L,
+            max_duration: processDurations ? processDurations.max() : null,
+            max_peak_rss: processPeakRss ? processPeakRss.max() : null,
+            max_cpu: processCpu ? processCpu.max() : null
+        ]
+    }.sort { a, b ->
+        def durationCmp = (b.total_duration ?: 0L) <=> (a.total_duration ?: 0L)
+        durationCmp != 0 ? durationCmp : (a.process <=> b.process)
+    }
+
+    def slowestProcess = processStats ? processStats[0].process : 'NA'
+    def highestMemoryProcess = processStats.findAll { it.max_peak_rss != null }.sort { a, b ->
+        (b.max_peak_rss ?: 0L) <=> (a.max_peak_rss ?: 0L)
+    }
+    highestMemoryProcess = highestMemoryProcess ? highestMemoryProcess[0].process : 'NA'
+
+    lines << 'Tasks'
+    lines << '-----'
+    lines << "total_tasks: ${totalTasks}"
+    lines << "completed_tasks: ${completedTasks}"
+    lines << "failed_tasks: ${failedTasks}"
+    lines << ''
+    lines << 'Peaks'
+    lines << '-----'
+    lines << "max_task_duration: ${durations ? formatDurationMs(durations.max()) : 'NA'}"
+    lines << "max_peak_rss: ${peakRssValues ? formatBytes(peakRssValues.max()) : 'NA'}"
+    lines << "max_percent_cpu: ${cpuValues ? formatPercent(cpuValues.max()) : 'NA'}"
+    lines << "slowest_process_by_total_duration: ${slowestProcess}"
+    lines << "highest_memory_process: ${highestMemoryProcess}"
+    lines << ''
+    lines << 'Top Processes By Total Duration'
+    lines << '-------------------------------'
+
+    def topProcesses = processStats.take(10).collect { row ->
+        [
+            process: row.process,
+            tasks: row.tasks,
+            total_duration: formatDurationMs(row.total_duration),
+            max_duration: formatDurationMs(row.max_duration),
+            max_peak_rss: formatBytes(row.max_peak_rss),
+            max_cpu: formatPercent(row.max_cpu)
+        ]
+    }
+
+    lines.addAll(renderTable(
+        topProcesses,
+        [
+            ['process', 'process', 32],
+            ['tasks', 'tasks', 7],
+            ['total_duration', 'total_duration', 16],
+            ['max_duration', 'max_duration', 16],
+            ['max_peak_rss', 'max_peak_rss', 14],
+            ['max_%cpu', 'max_cpu', 10]
+        ]
+    ))
+
+    lines << ''
+    lines << 'Top Tasks By Duration'
+    lines << '---------------------'
+
+    def topTasks = rows.findAll { it.duration_ms != null }.sort { a, b ->
+        (b.duration_ms ?: 0L) <=> (a.duration_ms ?: 0L)
+    }.take(10).collect { row ->
+        [
+            process: row.process ?: 'NA',
+            task: row.tag ?: row.name ?: 'NA',
+            duration: formatDurationMs(row.duration_ms),
+            peak_rss: formatBytes(row.peak_rss_bytes),
+            cpu: formatPercent(row.cpu_pct),
+            status: row.status ?: 'NA'
+        ]
+    }
+
+    lines.addAll(renderTable(
+        topTasks,
+        [
+            ['process', 'process', 28],
+            ['task', 'task', 28],
+            ['duration', 'duration', 14],
+            ['peak_rss', 'peak_rss', 12],
+            ['%cpu', 'cpu', 9],
+            ['status', 'status', 10]
+        ]
+    ))
+
+    lines << ''
+    lines << 'Notes'
+    lines << '-----'
+    lines << 'trace.txt contains one row per task execution.'
+    lines << 'The task column above prefers the Nextflow tag when available, then falls back to the task name.'
+    lines << 'CPU and memory metrics depend on executor/container support; missing values are reported as NA.'
+
+    reportFile.text = lines.join(System.lineSeparator()) + System.lineSeparator()
+}
+
 workflow {
     if (params.roadmap_id=="roadmap_1")
     {
@@ -713,44 +1010,8 @@ workflow roadmap_5 {
     main:
     if (params.read_type == "short") {
         map_reads_fasta_pairs(sample_name, reads, genome, paired)
-        finalize_alignment_bam(
-            map_reads_fasta_pairs.out.sorted_bam,
-            map_reads_fasta_pairs.out.sample_name
-        )
-        if (params.get_mapped_reads) {
-            get_mapped_reads(
-                map_reads_fasta_pairs.out.sorted_bam,
-                map_reads_fasta_pairs.out.paired,
-                map_reads_fasta_pairs.out.sample_name
-            )
-        }
-        if (params.get_unmapped_reads) {
-            get_unmapped_reads(
-                map_reads_fasta_pairs.out.sorted_bam,
-                map_reads_fasta_pairs.out.paired,
-                map_reads_fasta_pairs.out.sample_name
-            )
-        }
     } else {
         map_long_reads_fasta_pairs(sample_name, reads, genome)
-        finalize_alignment_bam(
-            map_long_reads_fasta_pairs.out.sorted_bam,
-            map_long_reads_fasta_pairs.out.sample_name
-        )
-        if (params.get_mapped_reads) {
-            get_mapped_reads(
-                map_long_reads_fasta_pairs.out.sorted_bam,
-                map_long_reads_fasta_pairs.out.paired,
-                map_long_reads_fasta_pairs.out.sample_name
-            )
-        }
-        if (params.get_unmapped_reads) {
-            get_unmapped_reads(
-                map_long_reads_fasta_pairs.out.sorted_bam,
-                map_long_reads_fasta_pairs.out.paired,
-                map_long_reads_fasta_pairs.out.sample_name
-            )
-        }
     }
 }
 
@@ -1127,7 +1388,6 @@ include {
     get_mapped_reads;
     map_reads_fasta_pairs;
     map_long_reads_fasta_pairs;
-    finalize_alignment_bam;
     bowtie2_to_sorted_bam;
     index_star;
     align_star;
@@ -1202,3 +1462,31 @@ include {
  create_mmseqs_db;
  mmseqs_linclust;
 } from './modules/cluster'
+
+workflow.onComplete {
+    if (!params.dump_report) {
+        return
+    }
+
+    try {
+        buildRunReport(workflow, params)
+    } catch (Exception e) {
+        def infoDir = new File(params.tracedir.toString())
+        infoDir.mkdirs()
+        def reportFile = new File(infoDir, 'run_stats.txt')
+        reportFile.text = """BioPlumber Run Stats
+====================
+
+roadmap_id: ${params.roadmap_id ?: 'NA'}
+status: ${workflow.success ? 'OK' : 'FAILED'}
+run_name: ${workflow.runName ?: 'NA'}
+session_id: ${workflow.sessionId ?: 'NA'}
+started: ${workflow.start ?: 'NA'}
+completed: ${workflow.complete ?: 'NA'}
+elapsed: ${workflow.duration ?: 'NA'}
+trace_file: ${new File(params.tracedir.toString(), 'trace.txt').absolutePath}
+report_generation_error: ${e.message ?: e.toString()}
+""".stripIndent()
+        log.warn("Failed to generate run_stats.txt: ${e.message ?: e.toString()}")
+    }
+}

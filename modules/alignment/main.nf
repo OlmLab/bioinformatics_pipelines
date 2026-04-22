@@ -239,9 +239,13 @@ process  get_mapped_reads{
 process map_reads_fasta_pairs{
     /*
     * This process lumps indexing and mapping of reads to a genome. It  is useful for when we have read-genome pairs.
+    * Outside roadmap_5 it behaves as before and writes a sorted BAM.
+    * In roadmap_5 it writes the final BAM and any requested FASTQs from the same task.
     */
-    // Publishing is suppressed when called from roadmap_5; finalize_alignment_bam handles it there.
     publishDir "${params.output_dir}/bowtie2_alignment/${sample_name}_${reference_fasta.baseName}", mode: 'copy', pattern: "*sorted.bam", enabled: params.get('roadmap_id', '') != "roadmap_5"
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.final.bam", enabled: params.get('roadmap_id', '') == "roadmap_5"
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.mapped*fastq.gz", enabled: params.get('roadmap_id', '') == "roadmap_5"
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.unmapped*fastq.gz", enabled: params.get('roadmap_id', '') == "roadmap_5"
     input:
     val sample_name
     path reads
@@ -250,30 +254,86 @@ process map_reads_fasta_pairs{
     output:
     path reads, emit: reads
     path reference_fasta, emit: reference_fasta
-    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam
+    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.final.bam", emit: final_bam, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.mapped*fastq.gz", emit: mapped_reads, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.unmapped*fastq.gz", emit: unmapped_reads, optional: true
     val sample_name, emit: sample_name
     val paired, emit: paired
 
     script:
-    competitiveness= (params.bowtie2_non_competitive_mapping) ? "-a" : ""
-    if (paired) {
+    def roadmap5Mode = params.get('roadmap_id', '') == "roadmap_5"
+    def competitiveness = (params.bowtie2_non_competitive_mapping) ? "-a" : ""
+    def outPrefix = "${sample_name}_${reference_fasta.baseName}"
+    def fullBam = "${outPrefix}.tmp.full.bam"
+    def alignCmd = paired ?
+        "bowtie2 -x ${reference_fasta} -1 ${reads[0]} -2 ${reads[1]} ${competitiveness} --threads ${task.cpus}" :
+        "bowtie2 -x ${reference_fasta} -U ${reads[0]} ${competitiveness} --threads ${task.cpus}"
+
+    if (!roadmap5Mode) {
         """
         bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
-        bowtie2 \\
-            -x ${reference_fasta} \\
-            -1 ${reads[0]} \\
-        -2 ${reads[1]} \\
-        ${competitiveness} \\
-        --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
-    """}
-    else {
+        ${alignCmd} | samtools view -bS - | samtools sort -o ${outPrefix}.sorted.bam
+        """
+    } else if (!params.keep_unmapped_reads && !params.get_mapped_reads && !params.get_unmapped_reads) {
         """
         bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
-        bowtie2 \\
-            -x ${reference_fasta} \\
-            -U ${reads[0]} \\
-        ${competitiveness} \\
-            --threads ${task.cpus} | samtools view -bS - | samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
+        ${alignCmd} | samtools view -bS -F 4 - | samtools sort -o ${outPrefix}.final.bam
+        """
+    } else if (params.keep_unmapped_reads && !params.get_mapped_reads && !params.get_unmapped_reads) {
+        """
+        bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+        ${alignCmd} | samtools view -bS - | samtools sort -o ${outPrefix}.final.bam
+        """
+    } else if (paired) {
+        """
+        bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+        ${alignCmd} | samtools view -bS - | samtools sort -o ${fullBam}
+
+        if ${params.get_mapped_reads}; then
+            samtools view -b -f 3 ${fullBam} | \\
+                samtools fastq -1 ${outPrefix}.mapped_1.fastq -2 ${outPrefix}.mapped_2.fastq
+            gzip ${outPrefix}.mapped_1.fastq
+            gzip ${outPrefix}.mapped_2.fastq
+        fi
+
+        if ${params.get_unmapped_reads}; then
+            samtools view -b -f 12 -F 256 ${fullBam} | \\
+                samtools fastq -1 ${outPrefix}.unmapped_1.fastq -2 ${outPrefix}.unmapped_2.fastq
+            gzip ${outPrefix}.unmapped_1.fastq
+            gzip ${outPrefix}.unmapped_2.fastq
+        fi
+
+        if ${params.keep_unmapped_reads}; then
+            cp ${fullBam} ${outPrefix}.final.bam
+        else
+            samtools view -b -F 4 ${fullBam} -o ${outPrefix}.final.bam
+        fi
+        rm ${fullBam}
+        """
+    } else {
+        """
+        bowtie2-build --threads ${task.cpus} ${reference_fasta} ${reference_fasta}
+        ${alignCmd} | samtools view -bS - | samtools sort -o ${fullBam}
+
+        if ${params.get_mapped_reads}; then
+            samtools view -b -F 4 ${fullBam} | \\
+                samtools fastq > ${outPrefix}.mapped.fastq
+            gzip ${outPrefix}.mapped.fastq
+        fi
+
+        if ${params.get_unmapped_reads}; then
+            samtools view -b -f 4 ${fullBam} | \\
+                samtools fastq -f 4 > ${outPrefix}.unmapped.fastq
+            gzip ${outPrefix}.unmapped.fastq
+        fi
+
+        if ${params.keep_unmapped_reads}; then
+            cp ${fullBam} ${outPrefix}.final.bam
+        else
+            samtools view -b -F 4 ${fullBam} -o ${outPrefix}.final.bam
+        fi
+        rm ${fullBam}
         """
     }
 
@@ -286,53 +346,75 @@ process map_long_reads_fasta_pairs {
      *   nanopore   -> map-ont
      *   pacbio_clr -> map-pb
      *   pacbio_hifi -> map-hifi
-     * Output is a full sorted BAM (mapped + unmapped). Use finalize_alignment_bam
-     * to produce the published BAM with optional unmapped-read filtering.
+     * Outside roadmap_5 it behaves as before and writes a sorted BAM.
+     * In roadmap_5 it writes the final BAM and any requested FASTQs from the same task.
      */
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.final.bam", enabled: params.get('roadmap_id', '') == "roadmap_5"
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.mapped*fastq.gz", enabled: params.get('roadmap_id', '') == "roadmap_5"
+    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy', pattern: "*.unmapped*fastq.gz", enabled: params.get('roadmap_id', '') == "roadmap_5"
     input:
     val sample_name
     path reads
     path reference_fasta
     output:
-    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam
+    path "${sample_name}_${reference_fasta.baseName}.sorted.bam", emit: sorted_bam, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.final.bam", emit: final_bam, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.mapped*fastq.gz", emit: mapped_reads, optional: true
+    path "${sample_name}_${reference_fasta.baseName}.unmapped*fastq.gz", emit: unmapped_reads, optional: true
     val sample_name, emit: sample_name
     val false, emit: paired
 
     script:
+    def roadmap5Mode = params.get('roadmap_id', '') == "roadmap_5"
     def preset = (params.read_type == "nanopore")    ? "map-ont"  :
                  (params.read_type == "pacbio_clr")  ? "map-pb"   :
                                                         "map-hifi"
-    """
-    minimap2 -ax ${preset} -t ${task.cpus} ${reference_fasta} ${reads} | \\
-        samtools view -bS - | \\
-        samtools sort -o ${sample_name}_${reference_fasta.baseName}.sorted.bam
-    """
-}
+    def outPrefix = "${sample_name}_${reference_fasta.baseName}"
+    def fullBam = "${outPrefix}.tmp.full.bam"
+    def alignCmd = "minimap2 -ax ${preset} -t ${task.cpus} ${reference_fasta} ${reads}"
 
-process finalize_alignment_bam {
-    /*
-     * Publishes the final BAM for roadmap_5.
-     * By default, unmapped reads are filtered out (mapped-only BAM).
-     * With --keep_unmapped_reads the full BAM is published instead.
-     * FASTQ extraction (--get_mapped_reads / --get_unmapped_reads) runs
-     * separately on the pre-filter BAM so no reads are lost.
-     */
-    publishDir "${params.output_dir}/alignment/${sample_name}", mode: 'copy'
-    input:
-    path sorted_bam
-    val sample_name
-    output:
-    path "${sorted_bam.baseName}.final.bam", emit: final_bam
-    val sample_name, emit: sample_name
-
-    script:
-    if (params.keep_unmapped_reads) {
+    if (!roadmap5Mode) {
         """
-        cp ${sorted_bam} ${sorted_bam.baseName}.final.bam
+        ${alignCmd} | \\
+            samtools view -bS - | \\
+            samtools sort -o ${outPrefix}.sorted.bam
+        """
+    } else if (!params.keep_unmapped_reads && !params.get_mapped_reads && !params.get_unmapped_reads) {
+        """
+        ${alignCmd} | \\
+            samtools view -bS -F 4 - | \\
+            samtools sort -o ${outPrefix}.final.bam
+        """
+    } else if (params.keep_unmapped_reads && !params.get_mapped_reads && !params.get_unmapped_reads) {
+        """
+        ${alignCmd} | \\
+            samtools view -bS - | \\
+            samtools sort -o ${outPrefix}.final.bam
         """
     } else {
         """
-        samtools view -b -F 4 ${sorted_bam} -o ${sorted_bam.baseName}.final.bam
+        ${alignCmd} | \\
+            samtools view -bS - | \\
+            samtools sort -o ${fullBam}
+
+        if ${params.get_mapped_reads}; then
+            samtools view -b -F 4 ${fullBam} | \\
+                samtools fastq > ${outPrefix}.mapped.fastq
+            gzip ${outPrefix}.mapped.fastq
+        fi
+
+        if ${params.get_unmapped_reads}; then
+            samtools view -b -f 4 ${fullBam} | \\
+                samtools fastq -f 4 > ${outPrefix}.unmapped.fastq
+            gzip ${outPrefix}.unmapped.fastq
+        fi
+
+        if ${params.keep_unmapped_reads}; then
+            cp ${fullBam} ${outPrefix}.final.bam
+        else
+            samtools view -b -F 4 ${fullBam} -o ${outPrefix}.final.bam
+        fi
+        rm ${fullBam}
         """
     }
 }
