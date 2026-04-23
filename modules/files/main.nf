@@ -2,7 +2,7 @@ process concatenate_files {
     /*
     * This process takes in a list of files and concatenates them into a single file.
     */
-    publishDir params.output_dir, mode: 'copy'
+    publishDir params.output_dir, mode: params.publish_dir_mode
     input:
     path file_list
     val output_file
@@ -25,8 +25,8 @@ process subsample_reads_reformat {
     * @param fraction    : fraction of reads to retain, between 0 and 1
     *                      (e.g. 0.1 keeps 10 % of reads)
     */
-    publishDir "${params.output_dir}/subsampled_reads/${sample_name}/fraction_${fraction}", mode: 'move', pattern: "*.fastq.gz"
-    publishDir "${params.output_dir}/subsampled_reads/csv",                                 mode: 'move', pattern: "*.csv"
+    publishDir "${params.output_dir}/subsampled_reads/${sample_name}/fraction_${fraction}", mode: params.publish_dir_mode, pattern: "*.fastq.gz"
+    publishDir "${params.output_dir}/subsampled_reads/csv",                                 mode: params.publish_dir_mode, pattern: "*.csv"
 
     input:
     val  sample_name

@@ -4,7 +4,7 @@ process download_humann_chocophlan {
     * @param url: The URL of the HUMAnN database to download.
     */
     
-    publishDir "${params.output_dir}/humann_databases"
+    publishDir "${params.output_dir}/humann_databases", mode: params.publish_dir_mode
     output:
     path "chocophlan/chocophlan", emit: humann_chocophlan
 
@@ -21,7 +21,7 @@ process download_humann_uniref90 {
     * @param url: The URL of the HUMAnN database to download.
     */
     
-    publishDir "${params.output_dir}/humann_databases"
+    publishDir "${params.output_dir}/humann_databases", mode: params.publish_dir_mode
     output:
     path "uniref90/uniref", emit: humann_uniref90
 
@@ -39,7 +39,7 @@ process profile_humann {
     * @param sample_name: The name of the sample.
     */
     
-    publishDir "${params.output_dir}/humann_profile", mode: 'copy'
+    publishDir "${params.output_dir}/humann_profile", mode: params.publish_dir_mode
     input:
     val sample_name
     path reads

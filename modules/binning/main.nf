@@ -4,7 +4,7 @@ process  get_coverage_for_metabat2
     * This process calculates the coverage of the input assembly using the provided reads. It generates
     * a coverage file that will be used for binning in the next step.
     */
-    publishDir "${params.output_dir}/binning/metabat2/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/binning/metabat2/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path sorted_bam
@@ -29,7 +29,7 @@ process binning_with_metabat2
     * This process performs binning using MetaBAT2. It takes the input assembly and the coverage
     * information from the previous step and generates bins in a specified output directory.
     */
-    publishDir "${params.output_dir}/binning/metabat2/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/binning/metabat2/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path assembly

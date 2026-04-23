@@ -2,7 +2,7 @@ process assign_taxonomy_gtdb_tk {
     /*
     * This process assigns taxonomy to the input bins using GTDB-Tk.
     */
-    publishDir "${params.output_dir}/gtdbtk", mode: 'copy'
+    publishDir "${params.output_dir}/gtdbtk", mode: params.publish_dir_mode
     input:
     path bins
     env "GTDBTK_DATA_PATH" // GTDB-Tk database path
@@ -24,7 +24,7 @@ process download_gtdbtk_db {
     * @param url: The URL of the GTDB-Tk database to download.
     */
     
-    publishDir "${params.output_dir}/gtdbtk_db"
+    publishDir "${params.output_dir}/gtdbtk_db", mode: params.publish_dir_mode
     output:
     path "release*", emit: gtdbtk_db
     
@@ -37,7 +37,7 @@ process download_gtdbtk_db {
 }
 
 process classify_kraken2_contigs{ 
-    publishDir "${params.output_dir}/kraken2/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/kraken2/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path contigs_fasta
@@ -55,7 +55,7 @@ process classify_kraken2_contigs{
 }
 
 process download_eggnog_db {
-    publishDir "${params.output_dir}/eggnog_db", mode: 'link'
+    publishDir "${params.output_dir}/eggnog_db", mode: params.publish_dir_mode
     output:
     path "eggnog_data", emit: eggnog_db
     script:
@@ -69,7 +69,7 @@ process eggnog_annotation {
     /*
     * This process annotates the input contigs using eggNOG-mapper.
     */
-    publishDir "${params.output_dir}/eggnog_annotation", mode: 'copy'
+    publishDir "${params.output_dir}/eggnog_annotation", mode: params.publish_dir_mode
     input:
     path genes_fasta
     path eggnog_data_dir
@@ -91,7 +91,7 @@ process download_genomad_db {
     * @param url: The URL of the Genomad database to download.
     */
     
-    publishDir "${params.output_dir}/"
+    publishDir "${params.output_dir}/", mode: params.publish_dir_mode
     output:
     path "genomad_db", emit: genomad_db
     
@@ -105,7 +105,7 @@ process annotate_contig_genomad{
     /*
     * This process annotates contigs using Genomad.
     */
-    publishDir "${params.output_dir}/genomad_annotation"
+    publishDir "${params.output_dir}/genomad_annotation", mode: params.publish_dir_mode
     input:
     val sample_name
     path contigs_fasta

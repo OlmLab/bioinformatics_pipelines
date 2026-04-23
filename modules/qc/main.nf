@@ -3,7 +3,7 @@ process read_qc_fastp {
     * This process applies quality control to the input FASTQ files using fastp. It also generates
     * a report in HTML format and a JSON file with the statistics.
     */
-    publishDir "${params.output_dir}/fastp_qc/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/fastp_qc/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path reads

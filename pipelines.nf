@@ -43,6 +43,9 @@ params.exclude_humann=false
 params.scan_genome_batch_size=10
 params.subsample_seed=42
 params.fractions=null
+params.publish_dir_mode = params.pubmlish_mode ?: params.publish_mode ?: params.publish_dir_mode ?: 'symlink'
+params.publish_mode = params.publish_dir_mode
+params.pubmlish_mode = params.publish_dir_mode
 
 
 // mmseqs2 parameters

@@ -6,7 +6,7 @@ process assemble_with_megahit{
     * @param read2: The second read file (optional, for paired-end reads).
     */
 
-    publishDir "${params.output_dir}/megahit/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/megahit/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name 
     path reads
@@ -40,7 +40,7 @@ process assemble_with_megahit{
 }
 
 process assemble_rna_spades{
-publishDir "${params.output_dir}/rna_spades/${sample_name}", mode: params.publish_mode
+publishDir "${params.output_dir}/rna_spades/${sample_name}", mode: params.publish_dir_mode
 input:
     val sample_name
     path reads
@@ -63,7 +63,7 @@ else{
 }
 
 process get_circular_contigs_cirit{
-publishDir "${params.output_dir}/cirit/${sample_name}", mode: params.publish_mode
+publishDir "${params.output_dir}/cirit/${sample_name}", mode: params.publish_dir_mode
 input:
     val sample_name
     path assembly

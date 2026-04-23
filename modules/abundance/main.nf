@@ -3,7 +3,7 @@ process  estimate_abundance_coverm{
     * This process estimates the abundance of bins using CoverM.
     * It takes in the bins and reads, and outputs the abundance estimates.
     */
-    publishDir "${params.output_dir}/coverm_abundance/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/coverm_abundance/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path bins
@@ -41,7 +41,7 @@ process estimate_abundance_sylph{
     * This process estimates the abundance of bins using Sylph. It takes the reads and prepared database.
     * For paired-end reads.
     */
-    publishDir "${params.output_dir}/sylph_abundance/", mode: 'copy'
+    publishDir "${params.output_dir}/sylph_abundance/", mode: params.publish_dir_mode
     
     input:
     path reads_1
@@ -61,7 +61,7 @@ process estimate_abundance_sylph_SE{
     * This process estimates the abundance of bins using Sylph. It takes the reads and prepared database.
     * For single-end reads.
     */
-    publishDir "${params.output_dir}/sylph_abundance/", mode: 'copy'
+    publishDir "${params.output_dir}/sylph_abundance/", mode: params.publish_dir_mode
     
     input:
     path reads_1
@@ -79,7 +79,7 @@ process estimate_abundance_metaphlan{
     /*
     * This process estimates the abundance of bins using MetaPhlAn. It takes in the reads and outputs the abundance estimates.
     */
-    publishDir "${params.output_dir}/metaphlan_abundance/", mode: 'copy'
+    publishDir "${params.output_dir}/metaphlan_abundance/", mode: params.publish_dir_mode
     input:
     val sample_name
     path reads
@@ -95,7 +95,7 @@ process estimate_abundance_metaphlan{
 }
 
 process merge_metaphlan_tables {
-    publishDir "${params.output_dir}/metaphlan_abundance/merged_abundances", mode: 'copy'
+    publishDir "${params.output_dir}/metaphlan_abundance/merged_abundances", mode: params.publish_dir_mode
     input:
     path abundance
     output:
@@ -107,7 +107,7 @@ process merge_metaphlan_tables {
 }
 
 process calculate_diversity_metaphlan{
-    publishDir "${params.output_dir}/metaphlan_abundance/diversity", mode: 'copy'
+    publishDir "${params.output_dir}/metaphlan_abundance/diversity", mode: params.publish_dir_mode
     input:
     path table
     output:
@@ -119,7 +119,7 @@ process calculate_diversity_metaphlan{
 }
 
 process classify_kraken2{ 
-    publishDir "${params.output_dir}/kraken2/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/kraken2/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path reads
@@ -145,7 +145,7 @@ process estimate_abundance_bracken{
     /*
     * This process estimates the abundance of bins using Bracken. It takes in the Kraken2 report and outputs the abundance estimates.
     */
-    publishDir "${params.output_dir}/bracken_abundance/", mode: 'copy'
+    publishDir "${params.output_dir}/bracken_abundance/", mode: params.publish_dir_mode
     input:
     val sample_name
     path kraken_report
@@ -180,7 +180,7 @@ process download_metaphlan_db {
 
 
 process download_kraken2_db {
-    publishDir "${params.output_dir}"
+    publishDir "${params.output_dir}", mode: params.publish_dir_mode
     input:
     val kraken2_db_link
     output:
@@ -195,7 +195,7 @@ process download_kraken2_db {
 }
 
 process gene_count_featurecounts {
-    publishDir "${params.output_dir}/featurecounts", mode: 'copy'
+    publishDir "${params.output_dir}/featurecounts", mode: params.publish_dir_mode
     input:
     path bams
     path annotation_gtf
@@ -241,7 +241,7 @@ process sylphScanBatchFromSRA{
     }
 
 process eukdetect{
-    publishDir "${params.output_dir}/eukdetect/${sample_name}", mode: 'copy'
+    publishDir "${params.output_dir}/eukdetect/${sample_name}", mode: params.publish_dir_mode
     input:
     val sample_name
     path reads

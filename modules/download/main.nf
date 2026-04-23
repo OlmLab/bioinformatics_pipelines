@@ -5,7 +5,7 @@ process download_files {
     * @param output_dir: The directory where the downloaded file will be saved.
     */
 
-    publishDir "${params.output_dir}/downloaded_files", params.publish_dir_mode
+    publishDir "${params.output_dir}/downloaded_files", mode: params.publish_dir_mode
     input:
     tuple val(url), val(name)
     output:
@@ -24,7 +24,7 @@ process get_sequences_from_sra {
     * @param sra_ids: SRA ID to retrieve.
     */
     
-    publishDir "${params.output_dir}/sra_sequences", mode: 'copy'
+    publishDir "${params.output_dir}/sra_sequences", mode: params.publish_dir_mode
     
     input:
     val sra_ids
@@ -41,5 +41,4 @@ process get_sequences_from_sra {
     rm -rf ${sra_ids}/${sra_ids}.sra
     """
 }
-
 

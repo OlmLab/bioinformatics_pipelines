@@ -4,7 +4,7 @@ process create_mmseqs_db{
     * This process creates an MMseqs2 database from the input FASTA file.
     * @param input_fasta: The input FASTA file containing sequences.
     */
-    publishDir "${params.output_dir}/mmseqs2_db", mode: 'copy'
+    publishDir "${params.output_dir}/mmseqs2_db", mode: params.publish_dir_mode
     
     input:
     path input_fasta
@@ -24,7 +24,7 @@ process mmseqs_linclust{
     * @param input_fasta: The input FASTA file containing sequences to be clustered.
     * @param identity: The sequence identity threshold for clustering.
     */
-    publishDir "${params.output_dir}/mmseqs2", mode: 'copy'
+    publishDir "${params.output_dir}/mmseqs2", mode: params.publish_dir_mode
     
     input:
     path input_fasta

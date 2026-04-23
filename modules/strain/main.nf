@@ -3,7 +3,7 @@ process profile_with_instrain{
     * This process profiles the bins using InStrain.
     * It takes in the bins and reads, and outputs the profiling results.
     */
-    publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}", mode: 'copy'
+    publishDir "${params.output_dir}/instrain/profile/${bamfile.baseName}", mode: params.publish_dir_mode
     input:
     path bamfile
     path fastafile 
@@ -24,7 +24,7 @@ process compare_instrain_profiles{
     * This process compares the InStrain profiles of the bins.
     * It takes in the profiles and outputs the comparison results.
     */
-    publishDir "${params.output_dir}/instrain/compare", mode: 'copy'
+    publishDir "${params.output_dir}/instrain/compare", mode: params.publish_dir_mode
     input:
     path instrain_profiles 
     path stb_file
@@ -43,7 +43,7 @@ process make_stb_file_instrain{
     * This process creates a stb file for InStrain.
     * It takes in the comparison results and outputs the STB file.
     */
-    publishDir "${params.output_dir}/instrain/stb", mode: 'copy'
+    publishDir "${params.output_dir}/instrain/stb", mode: params.publish_dir_mode
     input:
     path fastafiles
     val name
@@ -60,7 +60,7 @@ process sample_pairs{
     * This process creates sample pairs for InStrain comparison.
     * It takes in the profiles and outputs the sample pairs.
     */
-    publishDir "${params.output_dir}/instrain/sample_pairs", mode: 'copy'
+    publishDir "${params.output_dir}/instrain/sample_pairs", mode: params.publish_dir_mode
     input:
     val instrain_profiles 
     path pair_mapping
@@ -77,7 +77,7 @@ process compare_general_customized{
     * This process compares the InStrain profiles using a customized method.
     * It takes in the profiles and outputs the comparison results.
     */
-    publishDir "${params.output_dir}/instrain/compare_customized", mode: 'copy'
+    publishDir "${params.output_dir}/instrain/compare_customized", mode: params.publish_dir_mode
     input:
     path instrain_profiles 
     path stb_file
@@ -90,4 +90,3 @@ process compare_general_customized{
 
     """
 }
-
