@@ -172,7 +172,7 @@ Multiple samples can be processed in parallel with nextflow. Roadmap1 workflow n
 
 - reads
 
-Currently there are two ways to run this roadmap:
+Currently there are three ways to run this roadmap:
 
 - **local**: You have the samples locally in the execution environment. In this case, you need to provide a csv file containing at least three columns:
 
@@ -204,10 +204,10 @@ nextflow run pipelines.nf --roadmap_id roadmap_1 --host_genome "raw_data/ref_gen
 
 #### Description
 
-This roadmap is designed to perform strain-level analysis using inStrain. You can provide a list of samples and genomes in the form of a CSV file. The workflow starts with the following steps:
+This roadmap is designed to perform strain-level analysis using inStrain. You can provide paired-end reads or pre-aligned BAM files together with the genomes to profile. The workflow starts with the following steps:
 
 1. **Concatenating the Genomes**: The genomes are concatenated into one fasta file to run inStrain in database mode.
-2. **Aligning the reads to the concatenated fasta file** : The reads are aligned to the concatenated fasta file using bowtie2. This step generates sorted BAM file for each sample.
+2. **Aligning the reads to the concatenated fasta file** : If reads are provided, they are aligned to the concatenated fasta file using bowtie2. This step generates a sorted BAM file for each sample. If BAM files are provided directly, this alignment step is skipped.
 3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
 4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
 
@@ -215,7 +215,7 @@ This roadmap is designed to perform strain-level analysis using inStrain. You ca
 
 #### How to run
 
-Currently there are two ways to run this roadmap:
+Currently there are three ways to run this roadmap:
 
 1- You have prepared your concatenated genomes database and you have a STB file ready. 
 
@@ -227,7 +227,7 @@ Currently there are two ways to run this roadmap:
 
 - reads2
 
-- **stb file**: stb file is a text file made with a script accompanying dRep check inStrain and dRep documentation for more information. It contains the information about the mapping between contigs and genomescommand
+- **stb file**: stb file is a text file made with a script accompanying dRep. Check the inStrain and dRep documentation for more information. It contains the mapping between contigs and genomes.
 
 - **genome database**: This is a fasta file containing all the genomes you want to compare merged in one file. You can run the roadmap using the following command
 
@@ -255,17 +255,23 @@ If you want to choose the second option, you can run the roadmap using the follo
 nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_reads "<path-to-samples.csv>" --input_fastas "<path-to-genomes.csv>" -profile apptainer,alpine
 ```
 
-In any of the previous cases, you can alternatively provide bam files instead of the reads. In this case you still provide the samples.csv file with the following columns:
+3- You already have BAM files aligned to the same genome database and want to run inStrain directly on those BAM files.
+
+In this case, you provide `--input_bams` instead of `--input_reads`. The BAM files are passed directly to `inStrain profile`, so roadmap_2 skips the Bowtie2 alignment step.
+
+You still provide a `samples.csv` file with the following columns:
 
 - sample_name
 - bam_files
 
-You can run the roadmap using the following command (As an example when youhave the stb file and the genome database):
+For example, if you already have the genome database and STB file:
 
 ```bash
-nextflow run pipelines.nf --roadmap_id "roadmap_2"  --input_bams "<path-to-samples.csv"  --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file> -profile apptainer,alpine
+nextflow run pipelines.nf --roadmap_id "roadmap_2" --input_bams "<path-to-samples.csv>" --is_genome_db <path-to-genome-database> --is_stb_db <path-to-stb-file> -profile apptainer,alpine
 
 ```
+
+Make sure the BAM files were aligned against the same reference database used for `--is_genome_db` or generated from `--input_fastas`, and that the contig names match.
 
 ##### Optional arguments
 
@@ -593,7 +599,7 @@ nextflow run pipelines.nf --roadmap_id "roadmap_6" --input_file "<path-to-sample
 
 - **--exclude_metaphlan**: If you want to exclude Metaphlan from the analysis, you can provide this argument.
 
-- **--exclude_kraken2**: If you want to exclude KRAKEN2 from the analysis, you can provide this argument.
+- **--exclude_kraken**: If you want to exclude KRAKEN2 from the analysis, you can provide this argument.
 
 - **--exclude_humann**: If you want to exclude HUMAnN from the analysis, you can provide this argument.
 
