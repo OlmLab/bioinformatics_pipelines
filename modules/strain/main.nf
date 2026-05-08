@@ -55,38 +55,4 @@ process make_stb_file_instrain{
     """
 }
 
-process sample_pairs{
-    /*
-    * This process creates sample pairs for InStrain comparison.
-    * It takes in the profiles and outputs the sample pairs.
-    */
-    publishDir "${params.output_dir}/instrain/sample_pairs", mode: params.publish_dir_mode
-    input:
-    val instrain_profiles 
-    path pair_mapping
-    output:
-    path "sampled_pairs.csv", emit: sample_pairs
-    script:
-    """
-    compare_cosani.py sample --profiles ${instrain_profiles} --pair_mapping ${pair_mapping} --output_file samples.csv --n_samples ${params.n_samples}
-    """
-}
 
-process compare_general_customized{
-    /*
-    * This process compares the InStrain profiles using a customized method.
-    * It takes in the profiles and outputs the comparison results.
-    */
-    publishDir "${params.output_dir}/instrain/compare_customized", mode: params.publish_dir_mode
-    input:
-    path instrain_profiles 
-    path stb_file
-    output:
-    path "${instrain_profiles[0].baseName}_${instrain_profiles[1].baseName}_compare.json", emit: compare
-    
-    script:
-    """
-    compare_cosani.py compare --profile_1 ${instrain_profiles[0]} --profile_2 ${instrain_profiles[1]} --output_file ${instrain_profiles[0].baseName}_${instrain_profiles[1].baseName}_compare.json --stb_file ${stb_file}
-
-    """
-}

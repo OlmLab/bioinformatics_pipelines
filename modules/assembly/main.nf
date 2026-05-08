@@ -27,6 +27,10 @@ process assemble_with_megahit{
             -o megahit_out \
             -t ${task.cpus} \
             --out-prefix ${sample_name}
+
+        safe_sample_name=\$(printf '%s' "${sample_name}" | sed 's/[^A-Za-z0-9._-]/_/g')
+        sed "s/^>/>\${safe_sample_name}__/" megahit_out/${sample_name}.contigs.fa > megahit_out/${sample_name}.contigs.fa.tmp
+        mv megahit_out/${sample_name}.contigs.fa.tmp megahit_out/${sample_name}.contigs.fa
         """
     } else {
         """
@@ -35,6 +39,10 @@ process assemble_with_megahit{
             -o megahit_out \
             -t ${task.cpus} \
             --out-prefix ${sample_name}
+
+        safe_sample_name=\$(printf '%s' "${sample_name}" | sed 's/[^A-Za-z0-9._-]/_/g')
+        sed "s/^>/>\${safe_sample_name}__/" megahit_out/${sample_name}.contigs.fa > megahit_out/${sample_name}.contigs.fa.tmp
+        mv megahit_out/${sample_name}.contigs.fa.tmp megahit_out/${sample_name}.contigs.fa
         """
     }
 }
