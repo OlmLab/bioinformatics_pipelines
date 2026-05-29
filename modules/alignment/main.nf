@@ -508,7 +508,7 @@ process map_reads_kallisto_single_cell {
 process prepare_cellranger_fastqs {
     /*
     * Cell Ranger expects already-demultiplexed 10x FASTQs with bcl2fastq-style names.
-    * This process stages paired FASTQs under those names without modifying read content.
+    * This process stages R1/R2 and optional I1/I2 reads without modifying read content.
     */
     publishDir "${params.output_dir}/cellranger_fastqs/${sample_name}", mode: params.publish_dir_mode
 
@@ -520,13 +520,26 @@ process prepare_cellranger_fastqs {
     tuple val(sample_name), path("fastqs"), emit: sample_fastqs
 
     script:
-    if (reads.size() != 2) {
-        error "Cell Ranger count requires paired 10x FASTQs for sample '${sample_name}'."
+    def readCount = reads.size()
+    if (readCount < 2 || readCount > 4) {
+        error "Cell Ranger count requires R1/R2 and optional I1/I2 FASTQs for sample '${sample_name}', but received ${readCount} files."
     }
+    def stagedReads = [
+        [reads[0], "R1"],
+        [reads[1], "R2"]
+    ]
+    if (readCount >= 3) {
+        stagedReads << [reads[2], "I1"]
+    }
+    if (readCount == 4) {
+        stagedReads << [reads[3], "I2"]
+    }
+    def links = stagedReads.collect { readFile, readType ->
+        "ln -s ${readFile} fastqs/${sample_name}_S1_L001_${readType}_001.fastq.gz"
+    }.join('\n')
     """
     mkdir -p fastqs
-    ln -s ${reads[0]} fastqs/${sample_name}_S1_L001_R1_001.fastq.gz
-    ln -s ${reads[1]} fastqs/${sample_name}_S1_L001_R2_001.fastq.gz
+    ${links}
     """
 }
 

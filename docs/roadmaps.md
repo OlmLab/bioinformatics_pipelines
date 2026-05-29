@@ -661,8 +661,16 @@ For local FASTQs, provide a CSV with:
 - sample_name
 - reads1
 - reads2
+- reads3 (optional Cell Ranger I1/index read)
+- reads4 (optional Cell Ranger I2/index read)
 
-For Cell Ranger, `reads1` must be the barcode/UMI read (R1) and `reads2` must be the cDNA read (R2). The workflow does not trim reads before Cell Ranger, because 10x barcode and UMI positions must be preserved.
+For Cell Ranger, `reads1` must be the barcode/UMI read (R1), `reads2` must be the cDNA read (R2), and optional `reads3`/`reads4` are staged as index reads I1/I2. The workflow does not trim reads before Cell Ranger, because 10x barcode and UMI positions must be preserved.
+
+For SRA input, provide a CSV with:
+
+- Run
+
+The SRA downloader emits all split FASTQs for the run. In the Cell Ranger branch, the first two files are staged as R1/R2 and optional third/fourth files are staged as I1/I2. For GEO records, use the linked SRA run accessions when available, or download GEO supplementary FASTQs and provide them with `--input_type local`.
 
 Bulk RNA-Seq:
 
@@ -675,6 +683,20 @@ nextflow run pipelines.nf \
   --host_genome genome.fa \
   --host_genome_gtf genes.gtf \
   -profile apptainer,alpine
+```
+
+SRA input with Cell Ranger:
+
+```bash
+nextflow run pipelines.nf \
+  --roadmap_id roadmap_8 \
+  --mode single_cell_rna_seq \
+  --single_cell_tool cellranger \
+  --input_type sra \
+  --input_file sra_runs.csv \
+  --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
+  --cellranger_bin /path/to/cellranger \
+  -profile local
 ```
 
 Single-cell RNA-Seq with Kallisto:

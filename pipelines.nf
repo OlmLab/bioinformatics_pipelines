@@ -673,6 +673,14 @@ workflow {
             reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
+            if (params.mode=="single_cell_rna_seq" && params.single_cell_tool=="cellranger" && table.containsKey("reads3")) {
+                reads_3=Channel.fromPath(table["reads3"].collect{t->file(t)})
+                reads=reads.merge(reads_3)
+            }
+            if (params.mode=="single_cell_rna_seq" && params.single_cell_tool=="cellranger" && table.containsKey("reads4")) {
+                reads_4=Channel.fromPath(table["reads4"].collect{t->file(t)})
+                reads=reads.merge(reads_4)
+            }
             sample_names=Channel.fromList(table["sample_name"])
 
         }
