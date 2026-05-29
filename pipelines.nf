@@ -35,6 +35,11 @@ params.include_kraken2=false
 params.kraken2_db_link="https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20250402.tar.gz"
 params.humann_uniref90 = null // default is null
 params.humann_chocophlan = null // default is null
+params.single_cell_tool = "kallisto" // Options: kallisto, cellranger
+params.cellranger_reference = null // Pre-built Cell Ranger reference directory
+params.cellranger_bin = null // Path to the Cell Ranger executable visible at runtime
+params.cellranger_include_introns = true
+params.cellranger_create_bam = true
 // EXCLUDE PARAMETERS
 params.exclude_kraken=false
 params.exclude_metaphlan=false
@@ -651,14 +656,16 @@ workflow {
     }
     else if (params.roadmap_id=="roadmap_8")
     {
+        host_genome = params.host_genome ? file(params.host_genome) : null
+        host_genome_gtf = params.host_genome_gtf ? file(params.host_genome_gtf) : null
+        cellranger_reference = params.cellranger_reference ? file(params.cellranger_reference) : null
+        cellranger_bin = params.cellranger_bin
         if (params.input_type=="sra")
         {
             table=tableToDict(file("${params.input_file}"))
             get_sequences_from_sra(Channel.fromList(table["Run"]))
             sample_names=get_sequences_from_sra.out.sra_ids
             reads=get_sequences_from_sra.out.fastq_files
-            host_genome=file(params.host_genome)
-            host_genome_gtf=file(params.host_genome_gtf)
         }
         else if (params.input_type=="local")
         {
@@ -666,9 +673,7 @@ workflow {
             reads_1=Channel.fromPath(table["reads1"].collect{t->file(t)})
             reads_2=Channel.fromPath(table["reads2"].collect{t->file(t)})
             reads=reads_1.merge(reads_2)
-            sample_name=Channel.fromList(table["sample_name"])
-            host_genome=file(params.host_genome)
-            host_genome_gtf=file(params.host_genome_gtf)
+            sample_names=Channel.fromList(table["sample_name"])
 
         }
 
@@ -679,11 +684,23 @@ workflow {
 
         if (params.mode=="bulk_rna_seq")
         {
+            if (!host_genome || !host_genome_gtf) {
+                error "Please provide --host_genome and --host_genome_gtf for roadmap_8 --mode bulk_rna_seq."
+            }
             bulk_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
         }
         else if (params.mode=="single_cell_rna_seq")
         {   
-            single_cell_rna_seq(sample_names, reads, host_genome, host_genome_gtf)
+            if (params.single_cell_tool == "kallisto" && (!host_genome || !host_genome_gtf)) {
+                error "Please provide --host_genome and --host_genome_gtf for roadmap_8 --mode single_cell_rna_seq --single_cell_tool kallisto."
+            }
+            if (params.single_cell_tool == "cellranger" && !cellranger_reference) {
+                error "Please provide --cellranger_reference for roadmap_8 --mode single_cell_rna_seq --single_cell_tool cellranger."
+            }
+            if (params.single_cell_tool == "cellranger" && !cellranger_bin) {
+                error "Please provide --cellranger_bin for roadmap_8 --mode single_cell_rna_seq --single_cell_tool cellranger."
+            }
+            single_cell_rna_seq(sample_names, reads, host_genome, host_genome_gtf, cellranger_reference, cellranger_bin)
         }
         else
         {
@@ -1219,11 +1236,22 @@ workflow single_cell_rna_seq{
     sample_name
     reads
     host_genome
-    host_genome_gtf 
+    host_genome_gtf
+    cellranger_reference
+    cellranger_bin
     main:
-    read_qc_fastp(sample_name, reads)
-    index_kallisto(host_genome, host_genome_gtf)
-    map_reads_kallisto_single_cell(sample_name, index_kallisto.out.index_file, index_kallisto.out.t2g_file, read_qc_fastp.out.fastp_qcd_reads)
+    if (params.single_cell_tool == "kallisto") {
+        read_qc_fastp(sample_name, reads)
+        index_kallisto(host_genome, host_genome_gtf)
+        map_reads_kallisto_single_cell(sample_name, index_kallisto.out.index_file, index_kallisto.out.t2g_file, read_qc_fastp.out.fastp_qcd_reads)
+    }
+    else if (params.single_cell_tool == "cellranger") {
+        prepare_cellranger_fastqs(sample_name, reads)
+        run_cellranger_count(prepare_cellranger_fastqs.out.sample_fastqs, cellranger_reference, cellranger_bin)
+    }
+    else {
+        error "Unsupported single-cell tool '${params.single_cell_tool}'. Use 'kallisto' or 'cellranger'."
+    }
 }
 workflow quality_control {
     /*
@@ -1396,6 +1424,8 @@ include {
     align_star;
     index_kallisto;
     map_reads_kallisto_single_cell;
+    prepare_cellranger_fastqs;
+    run_cellranger_count;
     map_contigs_to_reference_transcriptome;
     map_rna_assemblies_to_reference_genome;
         } from "./modules/alignment"

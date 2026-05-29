@@ -505,6 +505,74 @@ process map_reads_kallisto_single_cell {
     """
 }
 
+process prepare_cellranger_fastqs {
+    /*
+    * Cell Ranger expects already-demultiplexed 10x FASTQs with bcl2fastq-style names.
+    * This process stages paired FASTQs under those names without modifying read content.
+    */
+    publishDir "${params.output_dir}/cellranger_fastqs/${sample_name}", mode: params.publish_dir_mode
+
+    input:
+    val sample_name
+    path reads
+
+    output:
+    tuple val(sample_name), path("fastqs"), emit: sample_fastqs
+
+    script:
+    if (reads.size() != 2) {
+        error "Cell Ranger count requires paired 10x FASTQs for sample '${sample_name}'."
+    }
+    """
+    mkdir -p fastqs
+    ln -s ${reads[0]} fastqs/${sample_name}_S1_L001_R1_001.fastq.gz
+    ln -s ${reads[1]} fastqs/${sample_name}_S1_L001_R2_001.fastq.gz
+    """
+}
+
+process run_cellranger_count {
+    /*
+    * Runs Cell Ranger count against a pre-built 10x reference transcriptome.
+    */
+    publishDir "${params.output_dir}/cellranger_count/${sample_name}", mode: params.publish_dir_mode
+
+    input:
+    tuple val(sample_name), path(fastqs)
+    path transcriptome
+    val cellranger_bin
+
+    output:
+    path "${sample_name}/outs/filtered_feature_bc_matrix", emit: filtered_feature_bc_matrix
+    path "${sample_name}/outs/filtered_feature_bc_matrix.h5", emit: filtered_feature_bc_matrix_h5
+    path "${sample_name}/outs/raw_feature_bc_matrix", emit: raw_feature_bc_matrix
+    path "${sample_name}/outs/raw_feature_bc_matrix.h5", emit: raw_feature_bc_matrix_h5
+    path "${sample_name}/outs/web_summary.html", emit: web_summary
+    path "${sample_name}/outs/metrics_summary.csv", emit: metrics_summary
+    path "${sample_name}/outs/possorted_genome_bam.bam", optional: true, emit: bam
+    path "${sample_name}/outs/possorted_genome_bam.bam.bai", optional: true, emit: bam_index
+    val sample_name, emit: sample_name
+
+    script:
+    def includeIntrons = params.cellranger_include_introns ? "true" : "false"
+    def createBam = params.cellranger_create_bam ? "true" : "false"
+    """
+    if [ ! -x "${cellranger_bin}" ]; then
+        echo "Cell Ranger executable is not visible or executable at --cellranger_bin: ${cellranger_bin}" >&2
+        exit 1
+    fi
+
+    ${cellranger_bin} count \\
+        --id=${sample_name} \\
+        --transcriptome=${transcriptome} \\
+        --fastqs=${fastqs} \\
+        --sample=${sample_name} \\
+        --localcores=${task.cpus} \\
+        --localmem=${task.memory.toGiga()} \\
+        --include-introns=${includeIntrons} \\
+        --create-bam=${createBam}
+    """
+}
+
 process map_contigs_to_reference_transcriptome{
     /*
     * This process maps the input FASTQ files to the reference transcriptome using Kallisto. The output

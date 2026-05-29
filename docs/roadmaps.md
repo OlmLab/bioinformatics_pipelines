@@ -14,6 +14,7 @@
   - [roadmap_5](#roadmap_5)
   - [roadmap_6](#roadmap_6)
   - [roadmap_7](#roadmap_7)
+  - [roadmap_8](#roadmap_8)
   - [roadmap_9](#roadmap_9)
   - [annotate_contigs](#annotate_contigs)
   - [subsample_reads](#subsample_reads)
@@ -95,6 +96,7 @@ The following table summerizes the available roadmaps in this repository:
 | roadmap_5        | Mapping reads to reference genomes.                          | reads or SRA accession IDs, genomes | mapped reads (BAM files) |
 | roadmap_6        | Metagenomics analysis using reference-based approach.        | QCed reads | taxonomic and functional profiles |
 | roadmap_7        | Taxonomic and functional annotation of genomes.              | genomes | annotated genomes |
+| roadmap_8        | RNA-Seq analysis with bulk RNA-Seq and single-cell RNA-Seq modes. | RNA-Seq or 10x scRNA-Seq reads, reference files | count matrices, alignments, and QC reports |
 | roadmap_9        | Detection of circular RNA contigs from RNA-Seq data.         | RNA-Seq reads, reference transcriptome | circular RNA contigs and mappings |
 | annotate_contigs | Taxonomic and functional annotation of contigs.              | contigs | annotated contigs |
 | subsample_reads  | Randomly subsample reads at one or more fractions.           | reads or SRA accession IDs | subsampled FASTQ files |
@@ -637,6 +639,93 @@ nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-
 ##### Relevant optional arguments
 
 - **--gtdb_db** : Path to the GTDB database. If this is not provided, the GTDB database will be downloaded.
+
+------
+
+### roadmap_8
+
+#### Description
+
+This roadmap is designed for RNA-Seq data. It supports:
+
+1. **Bulk RNA-Seq**: runs read QC with fastp, STAR alignment, and featureCounts.
+2. **Single-cell RNA-Seq with Kallisto/kb-python**: runs read QC, builds a Kallisto index from a genome FASTA and GTF, and produces an h5ad count matrix.
+3. **Single-cell RNA-Seq with Cell Ranger**: stages paired 10x FASTQs using Cell Ranger-compatible names and runs `cellranger count` against a pre-built 10x reference.
+
+Cell Ranger is commercial 10x Genomics software and is not bundled in the roadmap8 Docker image. To use it, provide the path to a licensed Cell Ranger executable with `--cellranger_bin`. When running with a container profile, this path must be visible inside the container at runtime.
+
+#### How to run
+
+For local FASTQs, provide a CSV with:
+
+- sample_name
+- reads1
+- reads2
+
+For Cell Ranger, `reads1` must be the barcode/UMI read (R1) and `reads2` must be the cDNA read (R2). The workflow does not trim reads before Cell Ranger, because 10x barcode and UMI positions must be preserved.
+
+Bulk RNA-Seq:
+
+```bash
+nextflow run pipelines.nf \
+  --roadmap_id roadmap_8 \
+  --mode bulk_rna_seq \
+  --input_type local \
+  --input_file samples.csv \
+  --host_genome genome.fa \
+  --host_genome_gtf genes.gtf \
+  -profile apptainer,alpine
+```
+
+Single-cell RNA-Seq with Kallisto:
+
+```bash
+nextflow run pipelines.nf \
+  --roadmap_id roadmap_8 \
+  --mode single_cell_rna_seq \
+  --single_cell_tool kallisto \
+  --input_type local \
+  --input_file samples.csv \
+  --host_genome genome.fa \
+  --host_genome_gtf genes.gtf \
+  -profile apptainer,alpine
+```
+
+Single-cell RNA-Seq with Cell Ranger:
+
+```bash
+nextflow run pipelines.nf \
+  --roadmap_id roadmap_8 \
+  --mode single_cell_rna_seq \
+  --single_cell_tool cellranger \
+  --input_type local \
+  --input_file samples.csv \
+  --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
+  --cellranger_bin /path/to/cellranger \
+  -profile local
+```
+
+If you run with Docker or Apptainer, keep using the roadmap8 container for dependencies, but make sure the Cell Ranger executable path is mounted/visible inside the container:
+
+```bash
+nextflow run pipelines.nf \
+  --roadmap_id roadmap_8 \
+  --mode single_cell_rna_seq \
+  --single_cell_tool cellranger \
+  --input_type local \
+  --input_file samples.csv \
+  --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
+  --cellranger_bin /path/visible/in/container/cellranger \
+  -profile docker
+```
+
+##### Relevant optional arguments
+
+- **--single_cell_tool**: Single-cell engine. Options are `kallisto` and `cellranger`. Default is `kallisto`.
+- **--cellranger_reference**: Path to a pre-built Cell Ranger reference directory, such as `refdata-gex-GRCh38-2024-A`.
+- **--cellranger_bin**: Path to the Cell Ranger executable. Required when `--single_cell_tool cellranger`.
+- **--cellranger_include_introns**: Passed to `cellranger count --include-introns`. Default is `true`.
+- **--cellranger_create_bam**: Passed to `cellranger count --create-bam`. Default is `true`.
 
 ------
 
