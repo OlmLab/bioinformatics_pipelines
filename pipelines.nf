@@ -1332,14 +1332,7 @@ workflow binning {
 
 }
 
-workflow test_customized_compared{
-    take:
-    profile_pairs
-    stb_file
-    main:
-    compare_general_customized(profile_pairs,stb_file)
 
-}
 
 
 workflow annotate_contigs{
@@ -1476,8 +1469,6 @@ include {estimate_abundance_coverm;
 include {compare_instrain_profiles;
          profile_with_instrain;
          make_stb_file_instrain;
-         compare_general_customized;
-         sample_pairs;
          } from './modules/strain'
 
 include { dereplicate_drep;write_genome_list } from './modules/dereplication'
