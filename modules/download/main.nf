@@ -37,8 +37,7 @@ process get_sequences_from_sra {
     """
     prefetch --max-size 200g ${sra_ids}
     fasterq-dump --split-files --outdir ${sra_ids} ${sra_ids}
-    gzip ${sra_ids}/${sra_ids}*.fastq
+    pigz -p ${task.cpus} ${sra_ids}/${sra_ids}*.fastq
     rm -rf ${sra_ids}/${sra_ids}.sra
     """
 }
-
