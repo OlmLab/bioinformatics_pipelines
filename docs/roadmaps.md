@@ -652,7 +652,7 @@ This roadmap is designed for RNA-Seq data. It supports:
 2. **Single-cell RNA-Seq with Kallisto/kb-python**: runs read QC, builds a Kallisto index from a genome FASTA and GTF, and produces an h5ad count matrix.
 3. **Single-cell RNA-Seq with Cell Ranger**: stages paired 10x FASTQs using Cell Ranger-compatible names and runs `cellranger count` against a pre-built 10x reference.
 
-Cell Ranger is commercial 10x Genomics software and is not bundled in the roadmap8 Docker image. To use it, provide the path to a licensed Cell Ranger executable with `--cellranger_bin`. When running with a container profile, this path must be visible inside the container at runtime.
+Cell Ranger is commercial 10x Genomics software and is not bundled in the roadmap8 Docker image. To use it, provide the path to a licensed Cell Ranger installation directory with `--cellranger_path`. When running with a container profile, this path must be visible inside the container at runtime.
 
 #### How to run
 
@@ -695,7 +695,7 @@ nextflow run pipelines.nf \
   --input_type sra \
   --input_file sra_runs.csv \
   --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
-  --cellranger_bin /path/to/cellranger \
+  --cellranger_path /path/to/cellranger-10.0.0 \
   -profile local
 ```
 
@@ -723,11 +723,11 @@ nextflow run pipelines.nf \
   --input_type local \
   --input_file samples.csv \
   --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
-  --cellranger_bin /path/to/cellranger \
+  --cellranger_path /path/to/cellranger-10.0.0 \
   -profile local
 ```
 
-If you run with Docker or Apptainer, keep using the roadmap8 container for dependencies, but make sure the Cell Ranger executable path is mounted/visible inside the container:
+If you run with Docker or Apptainer, keep using the roadmap8 container for dependencies, but make sure the Cell Ranger installation directory path is mounted/visible inside the container:
 
 ```bash
 nextflow run pipelines.nf \
@@ -737,7 +737,7 @@ nextflow run pipelines.nf \
   --input_type local \
   --input_file samples.csv \
   --cellranger_reference /path/to/refdata-gex-GRCh38-2024-A \
-  --cellranger_bin /path/visible/in/container/cellranger \
+  --cellranger_path /path/visible/in/container/cellranger-10.0.0 \
   -profile docker
 ```
 
@@ -745,7 +745,7 @@ nextflow run pipelines.nf \
 
 - **--single_cell_tool**: Single-cell engine. Options are `kallisto` and `cellranger`. Default is `kallisto`.
 - **--cellranger_reference**: Path to a pre-built Cell Ranger reference directory, such as `refdata-gex-GRCh38-2024-A`.
-- **--cellranger_bin**: Path to the Cell Ranger executable. Required when `--single_cell_tool cellranger`.
+- **--cellranger_path**: Path to the Cell Ranger installation directory. Required when `--single_cell_tool cellranger`.
 - **--cellranger_include_introns**: Passed to `cellranger count --include-introns`. Default is `true`.
 - **--cellranger_create_bam**: Passed to `cellranger count --create-bam`. Default is `true`.
 

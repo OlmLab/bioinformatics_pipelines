@@ -37,7 +37,7 @@ params.humann_uniref90 = null // default is null
 params.humann_chocophlan = null // default is null
 params.single_cell_tool = "kallisto" // Options: kallisto, cellranger
 params.cellranger_reference = null // Pre-built Cell Ranger reference directory
-params.cellranger_bin = null // Path to the Cell Ranger executable visible at runtime
+params.cellranger_path = null // Path to the extracted Cell Ranger installation directory visible at runtime
 params.cellranger_include_introns = true
 params.cellranger_create_bam = true
 // EXCLUDE PARAMETERS
@@ -659,7 +659,7 @@ workflow {
         host_genome = params.host_genome ? file(params.host_genome) : null
         host_genome_gtf = params.host_genome_gtf ? file(params.host_genome_gtf) : null
         cellranger_reference = params.cellranger_reference ? file(params.cellranger_reference) : null
-        cellranger_bin = params.cellranger_bin
+        cellranger_path = params.cellranger_path ? file(params.cellranger_path) : null
         if (params.input_type=="sra")
         {
             table=tableToDict(file("${params.input_file}"))
@@ -705,10 +705,10 @@ workflow {
             if (params.single_cell_tool == "cellranger" && !cellranger_reference) {
                 error "Please provide --cellranger_reference for roadmap_8 --mode single_cell_rna_seq --single_cell_tool cellranger."
             }
-            if (params.single_cell_tool == "cellranger" && !cellranger_bin) {
-                error "Please provide --cellranger_bin for roadmap_8 --mode single_cell_rna_seq --single_cell_tool cellranger."
+            if (params.single_cell_tool == "cellranger" && !cellranger_path) {
+                error "Please provide --cellranger_path for roadmap_8 --mode single_cell_rna_seq --single_cell_tool cellranger."
             }
-            single_cell_rna_seq(sample_names, reads, host_genome, host_genome_gtf, cellranger_reference, cellranger_bin)
+            single_cell_rna_seq(sample_names, reads, host_genome, host_genome_gtf, cellranger_reference, cellranger_path)
         }
         else
         {
@@ -1246,7 +1246,7 @@ workflow single_cell_rna_seq{
     host_genome
     host_genome_gtf
     cellranger_reference
-    cellranger_bin
+    cellranger_path
     main:
     if (params.single_cell_tool == "kallisto") {
         read_qc_fastp(sample_name, reads)
@@ -1254,8 +1254,7 @@ workflow single_cell_rna_seq{
         map_reads_kallisto_single_cell(sample_name, index_kallisto.out.index_file, index_kallisto.out.t2g_file, read_qc_fastp.out.fastp_qcd_reads)
     }
     else if (params.single_cell_tool == "cellranger") {
-        prepare_cellranger_fastqs(sample_name, reads)
-        run_cellranger_count(prepare_cellranger_fastqs.out.sample_fastqs, cellranger_reference, cellranger_bin)
+        run_cellranger_count(sample_name, reads, cellranger_reference, cellranger_path)
     }
     else {
         error "Unsupported single-cell tool '${params.single_cell_tool}'. Use 'kallisto' or 'cellranger'."
@@ -1425,7 +1424,6 @@ include {
     align_star;
     index_kallisto;
     map_reads_kallisto_single_cell;
-    prepare_cellranger_fastqs;
     run_cellranger_count;
     map_contigs_to_reference_transcriptome;
     map_rna_assemblies_to_reference_genome;
