@@ -18,6 +18,7 @@
   - [roadmap_9](#roadmap_9)
   - [annotate_contigs](#annotate_contigs)
   - [subsample_reads](#subsample_reads)
+  - [synthetic_data](#synthetic_data)
 
 ------
 
@@ -100,6 +101,7 @@ The following table summerizes the available roadmaps in this repository:
 | roadmap_9        | Detection of circular RNA contigs from RNA-Seq data.         | RNA-Seq reads, reference transcriptome | circular RNA contigs and mappings |
 | annotate_contigs | Taxonomic and functional annotation of contigs.              | contigs | annotated contigs |
 | subsample_reads  | Randomly subsample reads at one or more fractions.           | reads or SRA accession IDs | subsampled FASTQ files |
+| synthetic_data   | Build synthetic data. Modes: short_read_from_genome (ART or wgsim). | genome FASTA files | synthetic FASTQ files |
 
 ------
 
@@ -900,3 +902,68 @@ nextflow run pipelines.nf --roadmap_id subsample_reads \
 
 - **--fractions** : Comma-separated list of fractions to sample. Each value must be between 0 and 1 (e.g. `"0.1,0.25,0.5"`). Every sample is processed at every fraction.
 - **--subsample_seed** : Random seed passed to `reformat.sh` for reproducibility. Default is `42`.
+
+------
+
+### synthetic_data
+
+#### Description
+
+This roadmap builds synthetic sequencing data. The kind of data is selected with `--mode`. Currently supported modes:
+
+1. **short_read_from_genome** (default): simulates short reads from one or more genome FASTA files. Two simulators are available through `--synthetic_read_simulator`:
+    - **art_illumina** (default): [ART](https://www.niehs.nih.gov/research/resources/software/biostatistics/art) with empirical, platform-specific Illumina error profiles.
+    - **wgsim**: simple simulator with a uniform base error rate. It can also plant SNPs and indels in the reads; the planted mutations are written to `<sample_name>_wgsim_mutations.txt`. The number of read pairs is computed from the genome length and `--synthetic_coverage`.
+
+Two outputs are produced per genome:
+
+- **Synthetic FASTQ file(s)** (`<sample_name>_1.fastq.gz`, `<sample_name>_2.fastq.gz`, or `<sample_name>.fastq.gz` for single-end) written to:
+  ```
+  <output_dir>/synthetic_reads/<sample_name>/
+  ```
+- **A CSV file** (`<sample_name>.csv`) with `sample_name`, `reads1`, `reads2` columns written to:
+  ```
+  <output_dir>/synthetic_reads/csv/
+  ```
+  The CSV can be passed directly to other roadmaps via `--input_file`.
+
+#### How to run
+
+Provide a CSV with the following columns:
+
+- `sample_name`
+- `fasta_file`
+
+```bash
+nextflow run pipelines.nf --roadmap_id synthetic_data \
+    --mode short_read_from_genome \
+    --input_file "<path-to-genomes.csv>" \
+    --synthetic_coverage 20 \
+    -profile apptainer,alpine
+```
+
+Or, for a single genome (the sample name is taken from the file name):
+
+```bash
+nextflow run pipelines.nf --roadmap_id synthetic_data \
+    --genome "<path-to-genome.fasta>" \
+    --synthetic_read_simulator wgsim \
+    -profile apptainer,alpine
+```
+
+##### Relevant optional arguments
+
+- **--mode** : Type of synthetic data. Options: `short_read_from_genome`. Default is `short_read_from_genome`.
+- **--synthetic_read_simulator** : `art_illumina` or `wgsim`. Default is `art_illumina`.
+- **--synthetic_paired** : Simulate paired-end reads. Default is `true`.
+- **--synthetic_read_length** : Read length. Default is `150`. With ART it must not exceed the maximum read length of the chosen platform.
+- **--synthetic_coverage** : Fold coverage of the genome. Default is `10`.
+- **--synthetic_fragment_mean** : Mean fragment size for paired-end reads. Default is `400`.
+- **--synthetic_fragment_sd** : Standard deviation of the fragment size. Default is `50`.
+- **--synthetic_seed** : Random seed for reproducibility. Default is `42`.
+- **--art_illumina_platform** : ART sequencing system, e.g. `HS25`, `HSXt`, `MSv3`, `NS50`. Default is `HS25`.
+- **--art_illumina_args** : Extra arguments passed to `art_illumina`. Default is `""`.
+- **--wgsim_error_rate** : wgsim base error rate. Default is `0.02`.
+- **--wgsim_mutation_rate** : wgsim mutation rate. Set to `0` for reads without planted mutations. Default is `0.001`.
+- **--wgsim_indel_fraction** : Fraction of planted mutations that are indels. Default is `0.15`.
+- **--wgsim_args** : Extra arguments passed to `wgsim`. Default is `""`.

@@ -38,3 +38,8 @@ This directory contains the Dockerfiles for the pipelines. Each Dockerfile is de
 
 - **subsample_reads**:
     - bbtools (reformat.sh)
+
+- **synthetic_data**:
+    - art (art_illumina)
+    - wgsim
+    - pigz

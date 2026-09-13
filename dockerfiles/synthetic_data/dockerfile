@@ -1,0 +1,15 @@
+FROM condaforge/miniforge3
+
+LABEL maintainer="Olm Lab"
+LABEL description="Container for the synthetic_data roadmap. Provides ART (art_illumina) and wgsim for short read simulation."
+
+RUN mamba create -n synthetic_data -c conda-forge -c bioconda \
+    art \
+    wgsim \
+    pigz \
+    -y && \
+    mamba clean -afy
+
+RUN echo "source activate synthetic_data" >> ~/.bashrc
+RUN conda init bash
+ENV  PATH="/opt/conda/envs/synthetic_data/bin:$PATH"

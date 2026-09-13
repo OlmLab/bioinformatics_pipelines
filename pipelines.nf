@@ -48,6 +48,20 @@ params.exclude_humann=false
 params.scan_genome_batch_size=10
 params.subsample_seed=42
 params.fractions=null
+// synthetic_data parameters
+params.synthetic_read_simulator="art_illumina" // Options: art_illumina, wgsim
+params.synthetic_paired=true
+params.synthetic_read_length=150
+params.synthetic_coverage=10             // Fold coverage of the genome
+params.synthetic_fragment_mean=400       // Mean fragment (outer distance) size for paired reads
+params.synthetic_fragment_sd=50
+params.synthetic_seed=42
+params.art_illumina_platform="HS25"      // ART sequencing system (e.g. HS25, MSv3, NS50)
+params.art_illumina_args=""
+params.wgsim_error_rate=0.02
+params.wgsim_mutation_rate=0.001
+params.wgsim_indel_fraction=0.15
+params.wgsim_args=""
 params.publish_dir_mode = params.pubmlish_mode ?: params.publish_mode ?: params.publish_dir_mode ?: 'symlink'
 params.publish_mode = params.publish_dir_mode
 params.pubmlish_mode = params.publish_dir_mode
@@ -843,6 +857,26 @@ workflow {
         }
         subsample_reads(sample_names, reads, fractions)
     }
+    else if (params.roadmap_id=="synthetic_data")
+    {
+        if (params.input_file)
+        {
+            table=tableToDict(file("${params.input_file}"))
+            sample_names=Channel.fromList(table["sample_name"])
+            genomes=Channel.fromList(table["fasta_file"].collect{t->file(t)})
+        }
+        else if (params.genome)
+        {
+            genome=file(params.genome)
+            sample_names=Channel.of(genome.simpleName)
+            genomes=Channel.of(genome)
+        }
+        else
+        {
+            error "Please provide the genomes using either --input_file (CSV with sample_name,fasta_file columns) or --genome."
+        }
+        synthetic_data(sample_names, genomes)
+    }
     else
         {
             error "Please provide a valid roadmap_id."
@@ -1074,6 +1108,53 @@ workflow subsample_reads {
             fr: v[2]
         }.set { ins }
     subsample_reads_reformat(ins.sn, ins.rd, ins.fr)
+}
+
+workflow synthetic_data {
+    /*
+     * Builds synthetic sequencing data. The type of data is selected with --mode.
+     *
+     * Modes (--mode):
+     *   short_read_from_genome : simulate short reads from genome FASTA files (default).
+     */
+    take:
+    sample_names
+    genomes
+
+    main:
+    def mode = params.mode ?: "short_read_from_genome"
+    if (mode=="short_read_from_genome")
+    {
+        short_read_from_genome(sample_names, genomes)
+    }
+    else
+    {
+        error "Unsupported synthetic_data mode '${mode}'. Use 'short_read_from_genome'."
+    }
+}
+
+workflow short_read_from_genome {
+    /*
+     * Simulates short reads from genomes with the tool set by --synthetic_read_simulator
+     * (art_illumina (default) or wgsim).
+     */
+    take:
+    sample_names
+    genomes
+
+    main:
+    if (params.synthetic_read_simulator=="art_illumina")
+    {
+        simulate_short_reads_art_illumina(sample_names, genomes)
+    }
+    else if (params.synthetic_read_simulator=="wgsim")
+    {
+        simulate_short_reads_wgsim(sample_names, genomes)
+    }
+    else
+    {
+        error "Unsupported read simulator '${params.synthetic_read_simulator}'. Use 'art_illumina' or 'wgsim'."
+    }
 }
 
 workflow roadmap_6{
@@ -1492,6 +1573,11 @@ include {
  create_mmseqs_db;
  mmseqs_linclust;
 } from './modules/cluster'
+
+include {
+    simulate_short_reads_art_illumina;
+    simulate_short_reads_wgsim;
+} from './modules/simulation'
 
 workflow.onComplete {
     if (!params.dump_report) {
