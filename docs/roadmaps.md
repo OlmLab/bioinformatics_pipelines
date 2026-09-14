@@ -103,6 +103,30 @@ The following table summerizes the available roadmaps in this repository:
 | subsample_reads  | Randomly subsample reads at one or more fractions.           | reads or SRA accession IDs | subsampled FASTQ files |
 | synthetic_data   | Build synthetic data. Modes: short_read_from_genome (ART or wgsim). | genome FASTA files | synthetic FASTQ files |
 
+### Reading the diagrams
+
+Each roadmap below has a flowchart. Shapes and colors mean the same thing in every diagram:
+
+```mermaid
+flowchart LR
+    a(["Input"]):::input
+    b[("Database or reference")]:::db
+    c("Step<br/>tool"):::step
+    d("Optional step"):::optional
+    e{"Choice set by<br/>a parameter"}:::choice
+    f[["Output"]]:::output
+    a ~~~ b ~~~ c ~~~ d ~~~ e ~~~ f
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
+
+Dashed arrows lead to optional steps or optional inputs.
+
 ------
 
 ### quality_control
@@ -115,7 +139,32 @@ This pipeline performs quality control on raw sequencing data using fastp. It ta
 
 2. **Host Decontamination**: The quality-controlled reads are then decontaminated using a reference host genome. This step removes any reads that map to the host genome, resulting in a set of cleaned reads.
 
-![quality_control](../imgs/dag-quality_control.svg)
+```mermaid
+flowchart LR
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    host[("Host genome<br/>--host_genome")]:::db
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    fastp("Trim and filter<br/>fastp"):::step
+    idx("Index host genome<br/>bowtie2-build"):::step
+    map("Map reads to host<br/>bowtie2 + samtools"):::step
+    clean[["Decontaminated reads<br/>unmapped FASTQ"]]:::output
+    hostreads[["Host reads<br/>mapped FASTQ"]]:::output
+
+    sra --> dl --> fastp
+    csv --> fastp
+    fastp --> map
+    host --> idx --> map
+    map --> clean
+    map --> hostreads
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -166,7 +215,29 @@ This roadmap is designed to perform metagenomics analysis using a de novo assemb
 
 **NOTE**: This roadmap specifically does not include functional or taxonomic annotation of the bins. Those are delegated to other roadmaps.
 
-![roadmap_1](../imgs/dag-roadmap_1.svg)
+```mermaid
+flowchart TB
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    asm("Assemble contigs<br/>MEGAHIT"):::step
+    map("Map reads back to contigs<br/>bowtie2 + samtools"):::step
+    cov("Compute contig depth"):::step
+    bin("Bin contigs<br/>MetaBAT2"):::step
+    mags[["Metagenome-assembled genomes<br/>bin FASTAs"]]:::output
+
+    sra --> dl --> asm
+    csv --> asm
+    asm --> map --> cov --> bin --> mags
+    asm -- "contigs" --> bin
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -215,7 +286,48 @@ This roadmap is designed to perform strain-level analysis using inStrain. You ca
 3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
 4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
 
-![roadmap_2](../imgs/dag-roadmap_2.svg)
+```mermaid
+flowchart TB
+    subgraph genomes_in ["Genomes: provide one"]
+        direction LR
+        fastas(["Genome FASTAs CSV<br/>--input_fastas"]):::input
+        prebuilt[("Prebuilt database + STB<br/>--is_genome_db<br/>--is_stb_db")]:::db
+    end
+    subgraph samples_in ["Samples: provide one"]
+        direction LR
+        reads(["Reads CSV<br/>--input_reads"]):::input
+        bams(["BAM CSV<br/>--input_bams"]):::input
+    end
+
+    prefix("Prefix contig names<br/>--add_fasta_prefix"):::optional
+    concat("Concatenate genomes"):::step
+    stb("Build STB file<br/>contig to genome map"):::step
+    db[("Genome database<br/>+ STB file")]:::db
+    genes("Predict genes<br/>Prodigal<br/>skipped with --is_genes"):::step
+    idx("Index database<br/>bowtie2-build"):::step
+    map("Map reads<br/>bowtie2 + samtools"):::step
+    profile("Profile each sample<br/>inStrain profile"):::step
+    compare("Compare samples<br/>inStrain compare"):::step
+    out[["inStrain profiles<br/>and comparisons"]]:::output
+
+    fastas -.-> prefix -.-> concat
+    fastas --> concat --> db
+    fastas --> stb --> db
+    prebuilt --> db
+    db --> genes --> profile
+    db --> idx --> map
+    reads --> map --> profile
+    bams --> profile
+    db --> profile
+    profile --> compare --> out
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -296,7 +408,23 @@ This roadmap is designed to perform dereplication on a set of provided genomes. 
 2. **Dereplicating the genomes**: The genomes are dereplicated using dRep.
 
 
-![roadmap_3](../imgs/dag-roadmap_3.svg)
+```mermaid
+flowchart LR
+    genomes(["Genome FASTAs<br/>--input_genomes glob"]):::input
+    list("Write genome list<br/>avoids long command lines"):::step
+    drep("Dereplicate genomes<br/>dRep"):::step
+    out[["Dereplicated genomes"]]:::output
+
+    genomes --> list --> drep --> out
+    genomes --> drep
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -326,7 +454,43 @@ This roadmap provides end-to-end analysis of a set of samples. It extracts the b
 
 3. **Strain-level analysis**: The genomes are combined to make one fasta file. The reads are aligned to the genomes using bowtie2. inStrain is then used to profile the reads against the fasta files. Finally, the profiles are compared using inStrain compare.
 
-![roadmap_1_3_2](../imgs/dag-roadmap_1_3_2.svg)
+```mermaid
+flowchart TB
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+
+    subgraph r1 ["roadmap_1"]
+        direction LR
+        asm("Assemble contigs<br/>MEGAHIT"):::step
+        bin("Map reads and bin<br/>bowtie2 + MetaBAT2"):::step
+        asm --> bin
+    end
+    subgraph r3 ["roadmap_3"]
+        drep("Dereplicate bins<br/>dRep"):::step
+    end
+    subgraph r2 ["roadmap_2"]
+        direction LR
+        db("Build genome database<br/>STB file + Prodigal genes"):::step
+        map("Map the input reads<br/>bowtie2"):::step
+        prof("Profile and compare<br/>inStrain"):::step
+        db --> map --> prof
+    end
+    out[["inStrain profiles<br/>and comparisons"]]:::output
+
+    sra --> dl --> asm
+    csv --> asm
+    bin -- "all bins" --> drep
+    drep -- "dereplicated genomes" --> db
+    prof --> out
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -350,7 +514,32 @@ nextflow run pipelines.nf --roadmap_id "roadmap_1_3_2" --host_genome "<path-to-h
 
 This roadmap is a subset of roadmap_1. It is designed to QC the reads and decontaminate them using a reference genome. The workflow starts with the following steps
 
-![roadmap_4](../imgs/dag-roadmap_4.svg)
+```mermaid
+flowchart LR
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    host[("Host genome<br/>--host_genome")]:::db
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    fastp("Trim and filter<br/>fastp"):::step
+    idx("Index host genome<br/>bowtie2-build"):::step
+    map("Map reads to host<br/>bowtie2 + samtools"):::step
+    clean[["Decontaminated reads<br/>unmapped FASTQ"]]:::output
+    hostreads[["Host reads<br/>mapped FASTQ"]]:::output
+
+    sra --> dl --> fastp
+    csv --> fastp
+    fastp --> map
+    host --> idx --> map
+    map --> clean
+    map --> hostreads
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -395,7 +584,37 @@ This roadmap first dereplicates a list of input genomes and then performs strain
 3. **Profile each Sample**: Each sample is profiled against the concatenated fasta file using inStrain. This step generates a profile for each sample.
 4. **Compare the Profiles**: The profiles are compared using inStrain compare. This step generates a comparison file for each sample.
 
-![roadmap_3_2](../imgs/dag-roadmap_3_2.svg)
+```mermaid
+flowchart TB
+    fastas(["Genome FASTAs CSV<br/>--input_fastas"]):::input
+    force(["Genomes to always keep<br/>--force_genomes"]):::input
+    reads(["Reads CSV<br/>--input_reads"]):::input
+    drep("Dereplicate genomes<br/>dRep"):::step
+    merge("Combine and<br/>remove duplicates"):::step
+
+    subgraph r2 ["roadmap_2"]
+        direction LR
+        db("Build genome database<br/>STB file + Prodigal genes"):::step
+        map("Map reads<br/>bowtie2"):::step
+        prof("Profile each sample<br/>inStrain profile"):::step
+        cmp("Compare samples<br/>inStrain compare"):::step
+        db --> map --> prof --> cmp
+    end
+    out[["inStrain profiles<br/>and comparisons"]]:::output
+
+    fastas --> drep --> merge
+    force -.-> merge
+    merge --> db
+    reads --> map
+    cmp --> out
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -453,7 +672,38 @@ By default, the output BAM contains **mapped reads only**. This is the most comm
 
 `--get_mapped_reads` and `--get_unmapped_reads` can be combined and are independent of `--keep_unmapped_reads`.
 
-![roadmap_5](../imgs/dag-roadmap_5.svg)
+```mermaid
+flowchart TB
+    csv(["Reads CSV<br/>short: reads1, reads2<br/>long: reads"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    fastas(["Reference genomes CSV<br/>--input_fastas"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    pair{"Pair samples with genomes<br/>--roadmap_5_pairmode"}:::choice
+    type{"Read type<br/>--read_type"}:::choice
+    short("Index and align<br/>bowtie2-build + bowtie2"):::step
+    long("Align<br/>minimap2"):::step
+    sort("Filter and sort<br/>samtools"):::step
+    bam[["BAM per sample and genome<br/>mapped reads only by default"]]:::output
+    mfq[["Mapped reads FASTQ<br/>--get_mapped_reads"]]:::output
+    ufq[["Unmapped reads FASTQ<br/>--get_unmapped_reads"]]:::output
+
+    sra --> dl --> pair
+    csv --> pair
+    fastas --> pair
+    pair -- "paired: row by row<br/>cross: all vs all" --> type
+    type -- "short" --> short --> sort
+    type -- "nanopore, pacbio_clr,<br/>pacbio_hifi" --> long --> sort
+    sort --> bam
+    sort -.-> mfq
+    sort -.-> ufq
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run — short reads (default)
 
@@ -563,7 +813,71 @@ This roadmap is designed to perform metagenomics analysis using a reference-base
 3. **Classify reads and estimate abundance with KRAKEN2 and BRACKEN**: This will run KRAKEN2 to classify the reads and estimate the abundance of taxa in the samples.
 4. **Estimate functional profile of the samples with HUMAnN**: This will run HUMAnN3 to estimate the functional profile of the samples.
 
-![roadmap_6](../imgs/dag-roadmap_6.svg)
+```mermaid
+flowchart TB
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    samples(["Reads per sample"]):::input
+    sra --> dl --> samples
+    csv --> samples
+
+    subgraph sylph_sg ["Sylph"]
+        direction TB
+        sylph_db[("Sylph database<br/>GTDB r220 by default")]:::db
+        sylph("Taxonomic profile<br/>sylph"):::step
+        sylph_db --> sylph
+    end
+    subgraph mpa_sg ["MetaPhlAn"]
+        direction TB
+        mpa_db[("MetaPhlAn database")]:::db
+        mpa("Taxonomic profile<br/>MetaPhlAn"):::step
+        mpa_merge("Merge tables"):::step
+        mpa_div("Diversity<br/>calculate_diversity.R"):::step
+        mpa_db --> mpa --> mpa_merge --> mpa_div
+    end
+    subgraph kraken_sg ["Kraken2"]
+        direction TB
+        kraken_db[("Kraken2 database<br/>standard by default")]:::db
+        kraken("Classify reads<br/>Kraken2"):::step
+        bracken("Estimate abundance<br/>Bracken"):::step
+        kraken_db --> kraken --> bracken
+    end
+    subgraph humann_sg ["HUMAnN"]
+        direction TB
+        humann_db[("ChocoPhlAn + UniRef90")]:::db
+        humann("Functional profile<br/>HUMAnN"):::step
+        humann_db --> humann
+    end
+    subgraph euk_sg ["EukDetect"]
+        direction TB
+        euk_db[("EukDetect database<br/>--eukdetect_db")]:::db
+        euk("Detect eukaryotes<br/>EukDetect"):::step
+        euk_db --> euk
+    end
+    out[["Taxonomic and<br/>functional profiles"]]:::output
+
+    samples --> sylph
+    samples --> mpa
+    samples --> kraken
+    samples --> humann
+    samples --> euk
+    mpa_db --> humann
+    sylph --> out
+    mpa_div --> out
+    bracken --> out
+    humann --> out
+    euk --> out
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
+
+Each tool can be skipped with `--exclude_sylph`, `--exclude_metaphlan`, `--exclude_kraken`, `--exclude_humann` or `--exclude_eukdetect`. Databases you don't pass as parameters are downloaded automatically, except the EukDetect database, which must be given with `--eukdetect_db`.
 
 #### How to run
 
@@ -618,7 +932,24 @@ This roadmap is designed to do both taxonomic and functional annotation of a set
 1. **Taxonomic annotation with GTDB**: The genomes are annotated using GTDB.
 2. **Functional annotation**: UNDER CUSTRUCTION
 
-![roadmap_7](../imgs/dag-roadmap_7.svg)
+```mermaid
+flowchart LR
+    bins(["Genomes<br/>--bins_dir<br/>or --input_bins_table"]):::input
+    db[("GTDB-Tk database<br/>--gtdbtk_db or downloaded")]:::db
+    gtdb("Classify genomes<br/>GTDB-Tk"):::step
+    out[["GTDB taxonomy<br/>per genome"]]:::output
+
+    bins --> gtdb
+    db --> gtdb
+    gtdb --> out
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -640,7 +971,7 @@ nextflow run pipelines.nf --roadmap_id "roadmap_7" --input_bins_table "<path-to-
 
 ##### Relevant optional arguments
 
-- **--gtdb_db** : Path to the GTDB database. If this is not provided, the GTDB database will be downloaded.
+- **--gtdbtk_db** : Path to the GTDB database. If this is not provided, the GTDB database will be downloaded.
 
 ------
 
@@ -655,6 +986,56 @@ This roadmap is designed for RNA-Seq data. It supports:
 3. **Single-cell RNA-Seq with Cell Ranger**: stages paired 10x FASTQs using Cell Ranger-compatible names and runs `cellranger count` against a pre-built 10x reference.
 
 Cell Ranger is commercial 10x Genomics software and is not bundled in the roadmap8 Docker image. To use it, provide the path to a licensed Cell Ranger installation directory with `--cellranger_path`. When running with a container profile, this path must be visible inside the container at runtime.
+
+```mermaid
+flowchart TB
+    csv(["Reads CSV<br/>sample_name, reads1, reads2<br/>optional reads3, reads4"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    mode{"--mode"}:::choice
+    sra --> dl --> mode
+    csv --> mode
+
+    subgraph bulk ["bulk_rna_seq"]
+        direction TB
+        b_ref[("Genome FASTA + GTF<br/>--host_genome, --host_genome_gtf")]:::db
+        b_qc("Trim and filter<br/>fastp"):::step
+        b_idx("Index genome<br/>STAR"):::step
+        b_aln("Align reads<br/>STAR"):::step
+        b_cnt("Count reads per gene<br/>featureCounts"):::step
+        b_out[["Gene count matrix"]]:::output
+        b_ref --> b_idx --> b_aln
+        b_qc --> b_aln --> b_cnt --> b_out
+        b_ref -- "GTF" --> b_cnt
+    end
+
+    subgraph sc ["single_cell_rna_seq"]
+        direction TB
+        tool{"--single_cell_tool"}:::choice
+        k_ref[("Genome FASTA + GTF<br/>--host_genome, --host_genome_gtf")]:::db
+        k_qc("Trim and filter<br/>fastp"):::step
+        k_idx("Build index<br/>kb ref"):::step
+        k_cnt("Count cells and genes<br/>kb count"):::step
+        k_out[["h5ad count matrix"]]:::output
+        c_ref[("10x reference + Cell Ranger install<br/>--cellranger_reference, --cellranger_path")]:::db
+        c_cnt("Count cells and genes<br/>cellranger count"):::step
+        c_out[["Cell Ranger outputs"]]:::output
+        tool -- "kallisto" --> k_qc --> k_cnt --> k_out
+        k_ref --> k_idx --> k_cnt
+        tool -- "cellranger" --> c_cnt --> c_out
+        c_ref --> c_cnt
+    end
+
+    mode -- "bulk_rna_seq" --> b_qc
+    mode -- "single_cell_rna_seq" --> tool
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -763,7 +1144,32 @@ This roadmap is designed to detect circular RNA contigs from RNA-Seq data. The r
 2. **Circular Contig Detection**: The assembled contigs are analyzed to identify circular RNA structures. This is done using the cirit tool. 
 3. **Mapping**: The identified circular contigs are mapped to a reference transcriptome using minimap2.
 
-![roadmap_9](../imgs/dag-roadmap_9.svg)
+```mermaid
+flowchart TB
+    csv(["RNA-Seq reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    ref[("Reference sequences")]:::db
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    asm("Assemble transcripts<br/>rnaSPAdes"):::step
+    cirit("Find circular contigs<br/>Cirit"):::step
+    map("Map to reference<br/>minimap2"):::step
+    mapped[["Mapped<br/>circular contigs"]]:::output
+    unmapped[["Unmapped<br/>circular contigs"]]:::output
+
+    sra --> dl --> asm
+    csv --> asm
+    asm -- "soft- and hard-filtered<br/>transcripts" --> cirit --> map
+    ref --> map
+    map --> mapped
+    map --> unmapped
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -813,7 +1219,41 @@ This roadmap is designed to perform taxonomic and functional annotation of conti
 4. (Optional) Clustering the genes using MMseqs2 linclust to reduce redundancy.
 5. Annotating the genes using eggNOG-mapper. If clustering is performed, the representative sequences are annotated. Otherwise, all the genes are annotated.
 
-![annotate_contigs](../imgs/dag-annotate_contigs.svg)
+```mermaid
+flowchart TB
+    contigs(["Contigs CSV<br/>sample_name, contig_files"]):::input
+    kraken_db[("Kraken2 database<br/>--kraken2_db or downloaded")]:::db
+    genomad_db[("geNomad database<br/>--genomad_db or downloaded")]:::db
+    eggnog_db[("eggNOG database<br/>--eggnog_data_dir or downloaded")]:::db
+
+    prodigal("Predict genes<br/>Prodigal"):::step
+    kraken("Classify contigs<br/>Kraken2"):::step
+    genomad("Find viruses and plasmids<br/>geNomad<br/>skip with --skip_genomad_annotation"):::optional
+    pool("Pool genes from all samples<br/>nucleotide or amino acid<br/>--build_gene_db_mode"):::step
+    mmseqs("Cluster genes<br/>MMseqs2 linclust<br/>skip with --skip_mmseqs_clustering"):::optional
+    eggnog("Annotate gene functions<br/>eggNOG-mapper<br/>skip with --skip_functional_annotation"):::optional
+
+    tax[["Contig taxonomy"]]:::output
+    mge[["Virus and plasmid calls"]]:::output
+    fun[["Gene functional annotations"]]:::output
+
+    contigs --> prodigal --> pool
+    contigs --> kraken --> tax
+    kraken_db --> kraken
+    contigs -.-> genomad -.-> mge
+    genomad_db -.-> genomad
+    pool -.-> mmseqs -.-> eggnog
+    pool -. "if clustering is skipped" .-> eggnog
+    eggnog_db -.-> eggnog
+    eggnog -.-> fun
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
     
@@ -869,6 +1309,31 @@ Two outputs are produced per sample × fraction:
   <output_dir>/subsampled_reads/csv/
   ```
   The CSV has `sample_name`, `reads1`, `reads2` columns with absolute paths, so it can be passed directly to other roadmaps via `--input_file` or `--input_reads`.
+
+```mermaid
+flowchart LR
+    csv(["Reads CSV<br/>sample_name, reads1, reads2"]):::input
+    sra(["SRA accessions CSV<br/>Run"]):::input
+    fractions(["Fractions<br/>--fractions"]):::input
+    dl("Download reads<br/>prefetch + fasterq-dump"):::step
+    combine("Pair every sample<br/>with every fraction"):::step
+    sub("Subsample, keeping pairs<br/>BBTools reformat.sh<br/>--subsample_seed"):::step
+    fq[["Subsampled FASTQ<br/>per sample and fraction"]]:::output
+    table[["CSV per sample and fraction<br/>ready for other roadmaps"]]:::output
+
+    sra --> dl --> combine
+    csv --> combine
+    fractions --> combine --> sub
+    sub --> fq
+    sub --> table
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
@@ -926,6 +1391,37 @@ Two outputs are produced per genome:
   <output_dir>/synthetic_reads/csv/
   ```
   The CSV can be passed directly to other roadmaps via `--input_file`.
+
+```mermaid
+flowchart TB
+    csv(["Genomes CSV<br/>sample_name, fasta_file"]):::input
+    one(["Single genome<br/>--genome"]):::input
+    mode{"--mode"}:::choice
+    sim{"--synthetic_read_simulator"}:::choice
+    art("Simulate Illumina reads<br/>ART art_illumina<br/>default"):::step
+    wgsim("Simulate reads<br/>wgsim"):::step
+    fq[["Synthetic FASTQ<br/>paired or single-end"]]:::output
+    table[["CSV per sample<br/>ready for other roadmaps"]]:::output
+    mut[["Planted mutations<br/>wgsim only"]]:::output
+
+    csv --> mode
+    one --> mode
+    mode -- "short_read_from_genome" --> sim
+    sim -- "art_illumina" --> art
+    sim -- "wgsim" --> wgsim
+    art --> fq
+    art --> table
+    wgsim --> fq
+    wgsim --> table
+    wgsim --> mut
+
+    classDef input fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef db fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef step fill:#f8fafc,stroke:#475569,color:#0f172a
+    classDef optional fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 4
+    classDef choice fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d
+```
 
 #### How to run
 
